@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.db import get_connection, initialize_database
 from app.models import MessageCreate
+from app.worker import start_worker, recover_stuck_messages
 
 app = FastAPI()
 
@@ -15,6 +16,23 @@ app = FastAPI()
 @app.on_event("startup")
 def startup():
     initialize_database()
+
+    connection = get_connection()
+
+    try:
+        recover_stuck_messages(connection)
+    finally:
+        connection.close()
+
+    app.state.worker_stop_event, app.state.worker_thread = start_worker()
+
+# Shutdown process
+@app.on_event("shutdown")
+def shutdown():
+    app.state.worker_stop_event.set()
+    app.state.worker_thread.join()
+
+    print("Dakghar application shut down successfully")
 
 #Consistent API error response
 def api_error(status_code, code, detail):

@@ -247,5 +247,3 @@ updated= defer_until_provider_available(
     "email",
     20
 )
-
-print(updated)

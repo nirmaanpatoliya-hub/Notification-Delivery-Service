@@ -1,7 +1,4 @@
 import random
-import time
-
-from app.db import get_connection
 
 class MockProvider:
 
@@ -23,57 +20,32 @@ class MockProvider:
 
         return row
 
-    def send(self,message):
-        connection = get_connection()
+    def send(self, message, connection):
 
-        try:
-            config = self._load_config(connection)
+        config = self._load_config(connection)
 
-            recipient = message["recipient"]
+        recipient = message["recipient"]
 
-            if config["outage"] == 1:
-                return "transient", "503 provider unavailable"
+        if config["outage"] == 1:
+            return "transient", "503 provider unavailable"
 
-            if  (
-                recipient.endswith("@bounce.example")
-                or recipient.startswith("+91900000")
-            ):
-                return "permanent", "bounced: recipient does not exist"
+        if (
+            recipient.endswith("@bounce.example")
+            or recipient.startswith("+91900000")
+        ):
+            return "permanent", "bounced: recipient does not exist"
 
-            if random.random() < config["fail_rate"]:
-                return "transient", "timeout after 2 s"
+        if random.random() < config["fail_rate"]:
+            return "transient", "timeout after 2 s"
 
-            connection.execute(
-                """
-                INSERT OR IGNORE INTO inbox
-                (message_id, provider, recipient, subject, body, delivered_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    message["id"],
-                    self.name,
-                    recipient,
-                    message.get("subject"),
-                    message["body"],
-                    time.time()
-                )
-            )
+        return "ok", None
 
-            connection.commit()
-
-            print(
-                f"[{self.name}] Delivered notification to {recipient}"
-            )
-
-            return "ok", None
-        
-        finally:
-            connection.close()
 
 mailfast = MockProvider("mailfast")
 postbird = MockProvider("postbird")
 smsly = MockProvider("smsly")
 textgo = MockProvider("textgo")
+
 
 PROVIDERS = [
     mailfast,
