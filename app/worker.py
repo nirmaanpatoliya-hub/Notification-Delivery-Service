@@ -13,6 +13,17 @@ from app.providers import PROVIDERS
 BATCH_SIZE = 50
 POLL_INTERVAL = 1
 
+# Shared worker control state
+worker_state = {
+    "paused": False,
+    "last_tick_at": None,
+    "processed_total": 0,
+    "recovered_on_start": 0
+}
+
+worker_lock = threading.Lock()
+
+
 #Converting the rows of database provider table to objects of ProviderState of engine.py so that choose_provider can choose.
 def load_provider_states(connection):
     rows = connection.execute(
@@ -341,11 +352,16 @@ def worker_loop(stop_event):
     print("Background worker started")
 
     while not stop_event.is_set():
-        try:
-            tick(time.time())
-
-        except Exception as error:
-            print(f"Worker error: {error}")
+        if not worker_state["paused"]:
+            if worker_lock.acquire(blocking=False):
+                try:
+                    processed_count = tick(time.time())
+                    worker_state["last_tick_at"] = time.time()
+                    worker_state["processed_total"] += processed_count
+                except Exception as error:
+                    print(f"Worker error: {error}")
+                finally:
+                    worker_lock.release()
 
         stop_event.wait(POLL_INTERVAL)
 
@@ -363,3 +379,18 @@ def start_worker():
     thread.start()
 
     return stop_event, thread
+
+def manual_tick():
+    if not worker_lock.acquire(blocking=False):
+        return None
+
+    try:
+        processed_count = tick(time.time())
+
+        worker_state["last_tick_at"] = time.time()
+        worker_state["processed_total"] += processed_count
+
+        return processed_count
+
+    finally:
+        worker_lock.release()

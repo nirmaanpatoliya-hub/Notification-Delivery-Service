@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 class MessageCreate(BaseModel):
@@ -8,3 +8,10 @@ class MessageCreate(BaseModel):
     subject: Optional[str] = None
     body: str
     idempotency_key: Optional[str] = None
+
+class WorkerUpdate(BaseModel):
+    paused: bool
+
+class ProviderUpdate(BaseModel):
+    outage: Optional[bool] = None
+    fail_rate: Optional[float] = None

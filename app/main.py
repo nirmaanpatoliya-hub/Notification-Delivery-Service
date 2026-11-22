@@ -2,13 +2,14 @@ import re
 import time
 import sqlite3
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.db import get_connection, initialize_database
-from app.models import MessageCreate
-from app.worker import start_worker, recover_stuck_messages
+from app.db import get_connection, initialize_database, reset_database
+from app.models import MessageCreate, WorkerUpdate, ProviderUpdate
+from app.worker import start_worker, recover_stuck_messages, worker_state, manual_tick
+from app.auth import require_sender, require_admin
 
 app = FastAPI()
 
@@ -20,9 +21,11 @@ def startup():
     connection = get_connection()
 
     try:
-        recover_stuck_messages(connection)
+        recovered_count = recover_stuck_messages(connection)
     finally:
         connection.close()
+
+    worker_state["recovered_on_start"] = recovered_count
 
     app.state.worker_stop_event, app.state.worker_thread = start_worker()
 
@@ -70,10 +73,57 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
         }
     )
 
-#Health Check
+@app.get("/api/worker", dependencies=[Depends(require_sender)])
+def get_worker_status():
+    return {
+        "paused": worker_state["paused"],
+        "last_tick_at": worker_state["last_tick_at"],
+        "processed_total": worker_state["processed_total"],
+        "recovered_on_start": worker_state["recovered_on_start"]
+    }
+
+@app.patch("/api/worker", dependencies=[Depends(require_admin)])
+def update_worker_status(payload: WorkerUpdate):
+    worker_state["paused"] = payload.paused
+
+    return {
+        "paused": worker_state["paused"]
+    }
+
+@app.post("/api/worker/tick", dependencies=[Depends(require_admin)])
+def run_manual_tick():
+    processed_count = manual_tick()
+
+    if processed_count is None:
+        api_error(
+            409,
+            "worker_busy",
+            "The worker is currently processing messages."
+        )
+
+    return {
+        "processed": processed_count
+    }
+
+
+# Health Check
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    connection = get_connection()
+
+    try:
+        pending_count = connection.execute(
+            "SELECT COUNT(*) FROM messages WHERE status = 'pending'"
+        ).fetchone()[0]
+
+        return {
+            "status": "ok",
+            "pending": pending_count,
+            "worker": "paused" if worker_state["paused"] else "running"
+        }
+
+    finally:
+        connection.close()
 
 #Validate incoming notification
 def validate_message(message):
@@ -112,7 +162,7 @@ def validate_message(message):
             api_error(400, "body_too_long", "SMS body must contain 1 to 480 characters")
 
 #Create a notification
-@app.post("/api/messages", status_code=201)
+@app.post("/api/messages", status_code=201, dependencies=[Depends(require_sender)])
 def create_message(message: MessageCreate):
 
     validate_message(message)
@@ -167,7 +217,7 @@ def create_message(message: MessageCreate):
         connection.close()
 
 #Retreive messages
-@app.get("/api/messages")
+@app.get("/api/messages", dependencies=[Depends(require_sender)])
 def get_messages(
     status: str = None,
     channel: str= None,
@@ -237,7 +287,7 @@ def get_messages(
         connection.close()
 
 #Retrieve one message with its attempt history
-@app.get("/api/messages/{message_id}")
+@app.get("/api/messages/{message_id}", dependencies=[Depends(require_sender)])
 def get_message(message_id: int):
 
     connection = get_connection()
@@ -270,7 +320,7 @@ def get_message(message_id: int):
         connection.close()
 
 #Retrieve providers
-@app.get("/api/providers")
+@app.get("/api/providers", dependencies=[Depends(require_sender)])
 def get_providers():
 
     connection = get_connection()
@@ -299,9 +349,76 @@ def get_providers():
     finally:
         connection.close()
 
+@app.patch("/api/providers/{name}", dependencies=[Depends(require_admin)])
+def update_provider(name: str, payload: ProviderUpdate):
+    updates = payload.model_dump(exclude_unset=True)
+
+    if "fail_rate" in updates:
+        if not 0.0 <= updates["fail_rate"] <= 0.5:
+            api_error(
+                400,
+                "out_of_range",
+                "Failure rate must be between 0.0 and 0.5."
+            )
+
+    if not updates:
+        api_error(
+            400,
+            "invalid_request",
+            "At least one provider setting must be supplied."
+        )
+
+    connection = get_connection()
+
+    try:
+        provider = connection.execute(
+            "SELECT name FROM providers WHERE name = ?",
+            (name,)
+        ).fetchone()
+
+        if provider is None:
+            api_error(
+                404,
+                "provider_not_found",
+                "The requested provider does not exist."
+            )
+
+        if "outage" in updates:
+            connection.execute(
+                "UPDATE providers SET outage = ? WHERE name = ?",
+                (int(updates["outage"]), name)
+            )
+
+        if "fail_rate" in updates:
+            connection.execute(
+                "UPDATE providers SET fail_rate = ? WHERE name = ?",
+                (updates["fail_rate"], name)
+            )
+
+        connection.commit()
+
+        updated_provider = connection.execute(
+            "SELECT name, channel, priority, fail_rate, outage "
+            "FROM providers WHERE name = ?",
+            (name,)
+        ).fetchone()
+
+        return dict(updated_provider)
+
+    finally:
+        connection.close()
+
+@app.post("/api/admin/reset", dependencies=[Depends(require_admin)])
+def admin_reset():
+    reset_database()
+
+    return {
+        "reset": True,
+        "messages": 5
+    }
 
 #Retrieve inbox messages
-@app.get("/api/inbox")
+@app.get("/api/inbox", dependencies=[Depends(require_sender)])
 def get_inbox(
     provider: str = None,
     limit: int = Query(default=50, ge=1, le= 200)
