@@ -5,17 +5,23 @@ import sqlite3
 from fastapi import FastAPI, HTTPException, Query, Request, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 
 from app.db import get_connection, initialize_database, reset_database
 from app.models import MessageCreate, WorkerUpdate, ProviderUpdate
-from app.worker import start_worker, recover_stuck_messages, worker_state, manual_tick
+from app.worker import (
+    start_worker,
+    recover_stuck_messages,
+    worker_state,
+    manual_tick,
+    worker_lock
+)
 from app.auth import require_sender, require_admin
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
 
-#Initialize database when the API starts
-@app.on_event("startup")
-def startup():
+    # Startup
     initialize_database()
 
     connection = get_connection()
@@ -29,13 +35,18 @@ def startup():
 
     app.state.worker_stop_event, app.state.worker_thread = start_worker()
 
-# Shutdown process
-@app.on_event("shutdown")
-def shutdown():
-    app.state.worker_stop_event.set()
-    app.state.worker_thread.join()
+    try:
+        yield
 
-    print("Dakghar application shut down successfully")
+    finally:
+        # Shutdown
+        app.state.worker_stop_event.set()
+        app.state.worker_thread.join()
+
+        print("Dakghar application shut down successfully")
+
+
+app = FastAPI(lifespan=lifespan)
 
 #Consistent API error response
 def api_error(status_code, code, detail):
@@ -161,15 +172,56 @@ def validate_message(message):
         if not 1 <= len(message.body) <= 480:
             api_error(400, "body_too_long", "SMS body must contain 1 to 480 characters")
 
-#Create a notification
+
+# Create a notification
 @app.post("/api/messages", status_code=201, dependencies=[Depends(require_sender)])
 def create_message(message: MessageCreate):
 
     validate_message(message)
 
-    connection = get_connection()   
+    connection = get_connection()
 
     try:
+        # Start a write transaction to prevent duplicate-key race conditions
+        connection.execute("BEGIN IMMEDIATE")
+
+        # Check whether this idempotency key was already used
+        if message.idempotency_key:
+            existing = connection.execute(
+                """
+                SELECT id, channel, category, recipient, subject, body,
+                       status, created_at
+                FROM messages
+                WHERE idempotency_key = ?
+                """,
+                (message.idempotency_key,)
+            ).fetchone()
+
+            if existing:
+                same_request = (
+                    existing["channel"] == message.channel
+                    and existing["category"] == message.category
+                    and existing["recipient"] == message.to
+                    and existing["subject"] == message.subject
+                    and existing["body"] == message.body
+                )
+
+                if not same_request:
+                    api_error(
+                        409,
+                        "idempotency_key_conflict",
+                        "Idempotency key was already used with a different request"
+                    )
+
+                connection.commit()
+
+                return {
+                    "id": existing["id"],
+                    "status": "pending",
+                    "created_at": existing["created_at"]
+                }
+
+        # Check queue capacity only for genuinely new requests
         pending_count = connection.execute(
             "SELECT COUNT(*) FROM messages WHERE status = 'pending'"
         ).fetchone()[0]
@@ -182,8 +234,9 @@ def create_message(message: MessageCreate):
         cursor = connection.execute(
             """
             INSERT INTO messages
-            (channel, category, recipient, subject, body, status, created_at)
-            VALUES (?, ?, ?, ?, ?, 'pending', ?)
+            (channel, category, recipient, subject, body,
+             status, created_at, idempotency_key)
+            VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
             """,
             (
                 message.channel,
@@ -191,13 +244,13 @@ def create_message(message: MessageCreate):
                 message.to,
                 message.subject,
                 message.body,
-                created_at
+                created_at,
+                message.idempotency_key
             )
         )
 
         message_id = cursor.lastrowid
 
-        #commit before return success
         connection.commit()
 
         return {
@@ -205,6 +258,7 @@ def create_message(message: MessageCreate):
             "status": "pending",
             "created_at": created_at
         }
+
     except HTTPException:
         connection.rollback()
         raise
@@ -215,6 +269,7 @@ def create_message(message: MessageCreate):
 
     finally:
         connection.close()
+
 
 #Retreive messages
 @app.get("/api/messages", dependencies=[Depends(require_sender)])
@@ -410,12 +465,19 @@ def update_provider(name: str, payload: ProviderUpdate):
 
 @app.post("/api/admin/reset", dependencies=[Depends(require_admin)])
 def admin_reset():
-    reset_database()
 
-    return {
-        "reset": True,
-        "messages": 5
-    }
+    worker_lock.acquire()
+
+    try:
+        reset_database()
+
+        return {
+            "reset": True,
+            "messages": 5
+        }
+
+    finally:
+        worker_lock.release()
 
 #Retrieve inbox messages
 @app.get("/api/inbox", dependencies=[Depends(require_sender)])

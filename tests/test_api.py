@@ -231,3 +231,96 @@ def test_health_endpoint(client):
     assert data["status"] == "ok"
     assert "pending" in data
     assert data["worker"] in ("running", "paused")
+
+
+def test_idempotency_same_key_same_payload_creates_one_message(client):
+    headers = {"X-Api-Key": "test-sender-key"}
+
+    payload = {
+        "channel": "email",
+        "category": "transactional",
+        "to": "user@example.com",
+        "subject": "Test notification",
+        "body": "Hello, this is a test.",
+        "idempotency_key": "test-key-001"
+    }
+
+    first_response = client.post(
+        "/api/messages",
+        headers=headers,
+        json=payload
+    )
+
+    second_response = client.post(
+        "/api/messages",
+        headers=headers,
+        json=payload
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+
+    assert first_response.json()["id"] == second_response.json()["id"]
+    assert first_response.json()["created_at"] == second_response.json()["created_at"]
+
+
+def test_idempotency_same_key_different_payload_returns_409(client):
+    headers = {"X-Api-Key": "test-sender-key"}
+
+    first_payload = {
+        "channel": "email",
+        "category": "transactional",
+        "to": "user@example.com",
+        "subject": "First notification",
+        "body": "First message.",
+        "idempotency_key": "test-key-002"
+    }
+
+    second_payload = {
+        **first_payload,
+        "body": "Different message."
+    }
+
+    first_response = client.post(
+        "/api/messages",
+        headers=headers,
+        json=first_payload
+    )
+
+    second_response = client.post(
+        "/api/messages",
+        headers=headers,
+        json=second_payload
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 409
+    assert second_response.json()["error"] == "idempotency_key_conflict"
+
+
+def test_messages_without_idempotency_key_create_separate_messages(client):
+    headers = {"X-Api-Key": "test-sender-key"}
+
+    payload = {
+        "channel": "email",
+        "category": "transactional",
+        "to": "user@example.com",
+        "subject": "Normal notification",
+        "body": "Hello."
+    }
+
+    first_response = client.post(
+        "/api/messages",
+        headers=headers,
+        json=payload
+    )
+
+    second_response = client.post(
+        "/api/messages",
+        headers=headers,
+        json=payload
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+    assert first_response.json()["id"] != second_response.json()["id"]
