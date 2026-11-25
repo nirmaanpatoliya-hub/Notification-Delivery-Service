@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Providers &amp; Worker · DakGhar</title>
+  <title>Providers &amp; Worker Engine · DakGhar</title>
 
   <!-- Bootstrap 5.3 CSS & Bootstrap Icons CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -34,7 +34,7 @@
           <i class="bi bi-mailbox2 text-primary fs-3"></i>
           <div>
             DakGhar
-            <span class="brand-sub">Providers &amp; Worker</span>
+            <span class="brand-sub">Notification Delivery</span>
           </div>
         </a>
       </div>
@@ -108,16 +108,20 @@
       </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Content Canvas -->
     <main class="app-main">
 
       <!-- Page Header -->
-      <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-          <h1 class="page-title">Providers &amp; Worker Controls</h1>
-          <p class="page-subtitle">Manage mock delivery providers, test failover with simulated outages, and control background delivery worker.</p>
+          <h1 class="page-title mb-1">Providers &amp; Worker Controls</h1>
+          <p class="page-subtitle mb-0">Manage mock delivery providers, monitor circuit breaker states, and control background delivery worker.</p>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="badge bg-light text-muted border d-none d-sm-inline-flex align-items-center gap-1 py-2 px-3 small font-monospace">
+            <span class="worker-pulse running" style="width: 7px; height: 7px;"></span>
+            <span>Polling (5s)</span>
+          </span>
           <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" id="refreshBtn">
             <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
             <span>Refresh</span>
@@ -125,14 +129,17 @@
         </div>
       </div>
 
-      <!-- Admin Role Access Notice -->
-      <div id="adminNotice" class="alert alert-warning py-2 px-3 small d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4 border-warning-subtle bg-warning-subtle text-warning-emphasis d-none">
+      <!-- Admin Role Access Notice (Shown when in Sender Key Only Mode) -->
+      <div id="adminNotice" class="alert alert-warning py-3 px-3 small d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 border-warning-subtle bg-warning-subtle text-warning-emphasis rounded shadow-sm d-none">
         <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-shield-exclamation fs-5"></i>
-          <span><strong>Read-Only Mode:</strong> An Admin Key (<code>X-Admin-Key</code>) is required to pause/resume the worker, trigger ticks, toggle outages, or adjust failure rates.</span>
+          <i class="bi bi-shield-exclamation fs-4"></i>
+          <div>
+            <strong>Read-Only Access:</strong> An Admin Key (<code>X-Admin-Key</code>) is required to pause/resume the worker, trigger manual ticks, toggle outages, or apply failure rates.
+          </div>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-dark py-1 px-2" data-bs-toggle="modal" data-bs-target="#settingsModal">
-          <i class="bi bi-key-fill me-1"></i>Configure Admin Key
+        <button type="button" class="btn btn-sm btn-dark py-1 px-3 d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#settingsModal">
+          <i class="bi bi-key-fill"></i>
+          <span>Configure Admin Key</span>
         </button>
       </div>
 
@@ -147,17 +154,84 @@
       <!-- Main Dashboard Grid (Hidden until first load) -->
       <div id="dashboardContent" class="d-none">
 
-        <!-- Section 1: Background Worker Status & Controls -->
-        <div class="card mb-4 worker-control-card">
-          <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <!-- Top 4 Executive KPI Cards -->
+        <div class="row g-3 mb-4">
+          <!-- KPI 1: Worker State -->
+          <div class="col-sm-6 col-xl-3">
+            <div class="card count-card h-100 border-0 shadow-sm" id="cardKpiWorker">
+              <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                <div>
+                  <span class="count-label">Worker Engine</span>
+                  <div class="count-number mt-1 text-success" id="kpiWorkerState">Running</div>
+                  <div class="small text-muted" id="kpiWorkerSubtitle">1.0s background tick loop</div>
+                </div>
+                <div class="fs-1 text-success opacity-75">
+                  <i class="bi bi-cpu-fill"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 2: Total Dispatched Throughput -->
+          <div class="col-sm-6 col-xl-3">
+            <div class="card count-card h-100 border-0 shadow-sm" id="cardKpiProcessed">
+              <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                <div>
+                  <span class="count-label">Total Processed</span>
+                  <div class="count-number mt-1 text-primary font-monospace" id="kpiProcessedTotal">—</div>
+                  <div class="small text-muted" id="kpiRecoveredTotal">— on start</div>
+                </div>
+                <div class="fs-1 text-primary opacity-75">
+                  <i class="bi bi-send-check-fill"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 3: Email Routing Health -->
+          <div class="col-sm-6 col-xl-3">
+            <div class="card count-card h-100 border-0 shadow-sm" id="cardKpiEmail">
+              <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                <div>
+                  <span class="count-label">Email Failover Route</span>
+                  <div class="count-number mt-1 text-secondary" id="kpiEmailRouting">Healthy</div>
+                  <div class="small text-muted" id="kpiEmailSub">Primary: mailfast</div>
+                </div>
+                <div class="fs-1 text-secondary opacity-75">
+                  <i class="bi bi-envelope-at-fill"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 4: SMS Routing Health -->
+          <div class="col-sm-6 col-xl-3">
+            <div class="card count-card h-100 border-0 shadow-sm" id="cardKpiSms">
+              <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                <div>
+                  <span class="count-label">SMS Failover Route</span>
+                  <div class="count-number mt-1 text-purple" id="kpiSmsRouting">Healthy</div>
+                  <div class="small text-muted" id="kpiSmsSub">Primary: smsly</div>
+                </div>
+                <div class="fs-1 text-purple opacity-75">
+                  <i class="bi bi-chat-left-dots-fill"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 1: Background Worker Engine Hub -->
+        <div class="card mb-4 worker-control-card shadow-sm border">
+          <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between flex-wrap gap-2 border-bottom">
             <div class="d-flex align-items-center gap-2">
               <i class="bi bi-cpu-fill text-primary fs-5"></i>
-              <span class="fw-bold">Background Worker</span>
+              <span class="fw-bold">Background Worker Engine</span>
               <span id="adminActiveBadge" class="badge bg-success-subtle text-success border border-success-subtle small d-none">
                 <i class="bi bi-shield-lock-fill me-1"></i>Admin Access
               </span>
             </div>
-            <div id="workerHeaderBadgeContainer">
+            <div id="workerHeaderBadgeContainer" class="d-flex align-items-center gap-2">
               <span class="badge badge-status badge-pending" id="workerStateBadge">
                 <span class="worker-pulse paused"></span>
                 <span>Connecting...</span>
@@ -165,48 +239,51 @@
             </div>
           </div>
 
-          <div class="card-body">
+          <div class="card-body p-3 p-md-4">
             <!-- Worker Stats Grid -->
             <div class="row g-3 mb-4">
-              <div class="col-6 col-md-3">
+              <div class="col-6 col-lg-3">
                 <div class="worker-stat-box">
                   <div class="stat-label">Worker State</div>
                   <div class="stat-value" id="workerStateText">—</div>
                   <div class="stat-sub text-muted" id="workerStateSub">Checks every 1s</div>
                 </div>
               </div>
-              <div class="col-6 col-md-3">
+              <div class="col-6 col-lg-3">
                 <div class="worker-stat-box">
                   <div class="stat-label">Messages Processed</div>
                   <div class="stat-value font-monospace" id="workerProcessedTotal">—</div>
-                  <div class="stat-sub text-muted">Total since launch</div>
+                  <div class="stat-sub text-muted">Total dispatched since launch</div>
                 </div>
               </div>
-              <div class="col-6 col-md-3">
+              <div class="col-6 col-lg-3">
                 <div class="worker-stat-box">
                   <div class="stat-label">Recovered on Start</div>
                   <div class="stat-value font-monospace" id="workerRecoveredTotal">—</div>
-                  <div class="stat-sub text-muted">Crash recovery count</div>
+                  <div class="stat-sub text-muted">Crash recovery reset count</div>
                 </div>
               </div>
-              <div class="col-6 col-md-3">
+              <div class="col-6 col-lg-3">
                 <div class="worker-stat-box">
-                  <div class="stat-label">Last Tick Time</div>
+                  <div class="stat-label">Last Tick Recorded</div>
                   <div class="stat-value small font-monospace" id="workerLastTickTime">—</div>
-                  <div class="stat-sub text-muted" id="workerLastTickAge">—</div>
+                  <div class="stat-sub text-muted font-monospace" id="workerLastTickAge">—</div>
                 </div>
               </div>
             </div>
 
             <!-- Worker Controls Toolbar -->
-            <div class="worker-actions-bar p-3 rounded d-flex flex-wrap align-items-center justify-content-between gap-3 border">
+            <div class="worker-actions-bar p-3 rounded d-flex flex-wrap align-items-center justify-content-between gap-3 border bg-light">
               <div>
-                <div class="fw-semibold small text-main mb-1">Execution Controls</div>
+                <div class="fw-semibold small text-dark mb-1 d-flex align-items-center gap-2">
+                  <i class="bi bi-sliders text-primary"></i>
+                  <span>Worker Execution Controls</span>
+                </div>
                 <div class="text-muted small">
                   The background thread executes one tick per second. Pausing stops automatic pickup; manual tick runs immediately.
                 </div>
               </div>
-              <div class="d-flex align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
                 <!-- Pause / Resume Button -->
                 <button type="button" class="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-2" id="toggleWorkerBtn" disabled>
                   <span class="spinner-border spinner-border-sm d-none" id="toggleWorkerSpinner"></span>
@@ -225,19 +302,65 @@
           </div>
         </div>
 
-        <!-- Section 2: Mock Delivery Providers -->
-        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-          <div>
-            <h2 class="h5 fw-bold mb-1">Mock Providers &amp; Failover</h2>
-            <p class="text-muted small mb-0">
-              Each channel has a primary (priority 1) and backup (priority 2) provider. When a provider fails 2 times consecutively, the circuit opens for 30s.
-            </p>
+        <!-- Section 2: Mock Delivery Providers Grouped by Channel -->
+        <div class="mb-4">
+          <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div>
+              <h2 class="h5 fw-bold mb-1">Mock Providers &amp; Automated Failover</h2>
+              <p class="text-muted small mb-0">
+                Each channel has a Primary (priority 1) and Backup (priority 2) provider. When a provider encounters 2 consecutive failures, the circuit breaker opens for 30s.
+              </p>
+            </div>
+            <a href="about.html#failover" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+              <i class="bi bi-info-circle"></i>
+              <span>Failover Rules</span>
+            </a>
           </div>
-        </div>
 
-        <!-- Providers Cards Grid (4 providers: mailfast, postbird, smsly, textgo) -->
-        <div class="row g-3" id="providersGrid">
-          <!-- Dynamically populated and updated by providers.js -->
+          <!-- Channel 1: Email Channel -->
+          <div class="provider-channel-section mb-4">
+            <div class="provider-channel-header p-3 rounded mb-3 border bg-white shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-envelope-at-fill text-primary fs-5"></i>
+                <span class="fw-bold text-dark">Email Delivery Channel</span>
+                <span class="badge bg-light text-muted border font-monospace small">priority 1 &rarr; priority 2</span>
+              </div>
+              <div class="d-flex align-items-center gap-2 small">
+                <span class="text-muted">Route:</span>
+                <span class="badge bg-light text-dark border">mailfast (Primary)</span>
+                <i class="bi bi-arrow-right text-muted"></i>
+                <span class="badge bg-light text-dark border">postbird (Backup)</span>
+              </div>
+            </div>
+            <!-- Email Providers Grid -->
+            <div class="row g-3" id="emailProvidersGrid">
+              <!-- Rendered dynamically by providers.js -->
+            </div>
+          </div>
+
+          <!-- Channel 2: SMS Channel -->
+          <div class="provider-channel-section">
+            <div class="provider-channel-header p-3 rounded mb-3 border bg-white shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-chat-left-dots-fill text-purple fs-5"></i>
+                <span class="fw-bold text-dark">SMS Delivery Channel</span>
+                <span class="badge bg-light text-muted border font-monospace small">priority 1 &rarr; priority 2</span>
+              </div>
+              <div class="d-flex align-items-center gap-2 small">
+                <span class="text-muted">Route:</span>
+                <span class="badge bg-light text-dark border">smsly (Primary)</span>
+                <i class="bi bi-arrow-right text-muted"></i>
+                <span class="badge bg-light text-dark border">textgo (Backup)</span>
+              </div>
+            </div>
+            <!-- SMS Providers Grid -->
+            <div class="row g-3" id="smsProvidersGrid">
+              <!-- Rendered dynamically by providers.js -->
+            </div>
+          </div>
+
+          <!-- Hidden fallback container for complete DOM compatibility -->
+          <div id="providersGrid" class="d-none"></div>
         </div>
 
       </div>

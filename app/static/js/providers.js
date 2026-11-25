@@ -4,12 +4,13 @@
  * Responsibilities:
  * 1. Fetches and displays live worker status (Running/Paused, processed total, recovered count, last tick).
  * 2. Provides worker execution controls (Pause / Resume worker, Run One Tick) via PATCH /api/worker and POST /api/worker/tick.
- * 3. Fetches and renders the 4 mock providers (mailfast, postbird, smsly, textgo) with healthy, outage, and cooling-down states.
+ * 3. Fetches and renders mock providers (mailfast, postbird, smsly, textgo) grouped cleanly by channel (Email vs SMS).
  * 4. Provides provider controls (Outage switch toggle, Failure rate range slider 0%-50% with Apply button).
- * 5. Strict role enforcement: If only Sender Key is configured, controls are read-only with a clear explanation banner.
+ * 5. Strict role enforcement: If only Sender Key is configured, controls are read-only with an admin key notice banner.
  *    If Admin Key (X-Admin-Key) is configured, administrative controls are enabled.
  * 6. Live cooldown countdown timer without unnecessary API requests every second.
  * 7. Non-overlapping auto-refresh when tab is visible, preserving user's in-progress slider adjustments.
+ * 8. Top-level executive KPI indicators for channel routing health and worker throughput.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,6 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const loadingState = document.getElementById('loadingState');
   const dashboardContent = document.getElementById('dashboardContent');
 
+  // Executive KPI Elements
+  const kpiWorkerState = document.getElementById('kpiWorkerState');
+  const kpiWorkerSubtitle = document.getElementById('kpiWorkerSubtitle');
+  const kpiProcessedTotal = document.getElementById('kpiProcessedTotal');
+  const kpiRecoveredTotal = document.getElementById('kpiRecoveredTotal');
+  const kpiEmailRouting = document.getElementById('kpiEmailRouting');
+  const kpiEmailSub = document.getElementById('kpiEmailSub');
+  const kpiSmsRouting = document.getElementById('kpiSmsRouting');
+  const kpiSmsSub = document.getElementById('kpiSmsSub');
+
   // Worker DOM Elements
   const workerStateBadge = document.getElementById('workerStateBadge');
   const workerStateText = document.getElementById('workerStateText');
@@ -56,7 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const runTickIcon = document.getElementById('runTickIcon');
   const runTickText = document.getElementById('runTickText');
 
-  // Providers Container
+  // Provider Grids
+  const emailProvidersGrid = document.getElementById('emailProvidersGrid');
+  const smsProvidersGrid = document.getElementById('smsProvidersGrid');
   const providersGrid = document.getElementById('providersGrid');
 
   // --- Authentication & Role Detection ---
@@ -69,24 +82,24 @@ document.addEventListener('DOMContentLoaded', () => {
     state.hasSenderKey = Boolean(senderKey && senderKey.trim());
 
     if (state.hasAdminKey) {
-      adminNotice.classList.add('d-none');
-      adminActiveBadge.classList.remove('d-none');
+      if (adminNotice) adminNotice.classList.add('d-none');
+      if (adminActiveBadge) adminActiveBadge.classList.remove('d-none');
     } else {
-      adminNotice.classList.remove('d-none');
-      adminActiveBadge.classList.add('d-none');
+      if (adminNotice) adminNotice.classList.remove('d-none');
+      if (adminActiveBadge) adminActiveBadge.classList.add('d-none');
     }
 
     // Enable or disable worker buttons based on Admin role
-    toggleWorkerBtn.disabled = !state.hasAdminKey;
-    runTickBtn.disabled = !state.hasAdminKey;
+    if (toggleWorkerBtn) toggleWorkerBtn.disabled = !state.hasAdminKey;
+    if (runTickBtn) runTickBtn.disabled = !state.hasAdminKey;
 
     // Update title tooltips on controls when disabled
     if (!state.hasAdminKey) {
-      toggleWorkerBtn.title = 'Admin Key required to control worker';
-      runTickBtn.title = 'Admin Key required to trigger worker tick';
+      if (toggleWorkerBtn) toggleWorkerBtn.title = 'Admin Key required to control worker';
+      if (runTickBtn) runTickBtn.title = 'Admin Key required to trigger worker tick';
     } else {
-      toggleWorkerBtn.removeAttribute('title');
-      runTickBtn.removeAttribute('title');
+      if (toggleWorkerBtn) toggleWorkerBtn.removeAttribute('title');
+      if (runTickBtn) runTickBtn.removeAttribute('title');
     }
   }
 
@@ -108,19 +121,93 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderWorkerStatus(workerData);
       renderProvidersList(state.providers);
+      updateExecutiveKpis(workerData, state.providers);
 
-      loadingState.classList.add('d-none');
-      dashboardContent.classList.remove('d-none');
+      if (loadingState) loadingState.classList.add('d-none');
+      if (dashboardContent) dashboardContent.classList.remove('d-none');
 
     } catch (err) {
       console.warn('Failed to load providers/worker data:', err);
       // If initial fetch failed, ensure user gets feedback
       if (isInitial && (!state.hasSenderKey && !state.hasAdminKey)) {
-        loadingState.classList.add('d-none');
-        dashboardContent.classList.remove('d-none');
+        if (loadingState) loadingState.classList.add('d-none');
+        if (dashboardContent) dashboardContent.classList.remove('d-none');
       }
     } finally {
       state.isFetching = false;
+    }
+  }
+
+  // --- Update Top Executive KPI Cards ---
+
+  function updateExecutiveKpis(worker, providers) {
+    if (!worker || !providers) return;
+
+    // 1. Worker KPI
+    const isPaused = Boolean(worker.paused);
+    if (kpiWorkerState) {
+      kpiWorkerState.textContent = isPaused ? 'Paused' : 'Running';
+      kpiWorkerState.className = isPaused ? 'count-number mt-1 text-warning' : 'count-number mt-1 text-success';
+    }
+    if (kpiWorkerSubtitle) {
+      kpiWorkerSubtitle.textContent = isPaused ? 'Background loop suspended' : '1.0s background tick loop';
+    }
+
+    // 2. Throughput KPI
+    if (kpiProcessedTotal) {
+      kpiProcessedTotal.textContent = Number(worker.processed_total || 0).toLocaleString();
+    }
+    if (kpiRecoveredTotal) {
+      kpiRecoveredTotal.textContent = `${Number(worker.recovered_on_start || 0).toLocaleString()} recovered on start`;
+    }
+
+    // 3. Email Channel Health
+    const now = Date.now() / 1000;
+    const emailProviders = providers.filter(p => p.channel === 'email');
+    const mailfast = emailProviders.find(p => p.name === 'mailfast');
+    const postbird = emailProviders.find(p => p.name === 'postbird');
+
+    if (mailfast && postbird && kpiEmailRouting && kpiEmailSub) {
+      const mfHealthy = !mailfast.outage && (!mailfast.open_until || mailfast.open_until <= now);
+      const pbHealthy = !postbird.outage && (!postbird.open_until || postbird.open_until <= now);
+
+      if (mfHealthy) {
+        kpiEmailRouting.textContent = 'Healthy';
+        kpiEmailRouting.className = 'count-number mt-1 text-success';
+        kpiEmailSub.textContent = 'Primary (mailfast) active';
+      } else if (pbHealthy) {
+        kpiEmailRouting.textContent = 'Failover Active';
+        kpiEmailRouting.className = 'count-number mt-1 text-warning';
+        kpiEmailSub.textContent = 'Backup (postbird) active';
+      } else {
+        kpiEmailRouting.textContent = 'All Cooling Down';
+        kpiEmailRouting.className = 'count-number mt-1 text-danger';
+        kpiEmailSub.textContent = 'Messages queuing until cooldown';
+      }
+    }
+
+    // 4. SMS Channel Health
+    const smsProviders = providers.filter(p => p.channel === 'sms');
+    const smsly = smsProviders.find(p => p.name === 'smsly');
+    const textgo = smsProviders.find(p => p.name === 'textgo');
+
+    if (smsly && textgo && kpiSmsRouting && kpiSmsSub) {
+      const smsHealthy = !smsly.outage && (!smsly.open_until || smsly.open_until <= now);
+      const tgHealthy = !textgo.outage && (!textgo.open_until || textgo.open_until <= now);
+
+      if (smsHealthy) {
+        kpiSmsRouting.textContent = 'Healthy';
+        kpiSmsRouting.className = 'count-number mt-1 text-purple';
+        kpiSmsSub.textContent = 'Primary (smsly) active';
+      } else if (tgHealthy) {
+        kpiSmsRouting.textContent = 'Failover Active';
+        kpiSmsRouting.className = 'count-number mt-1 text-warning';
+        kpiSmsSub.textContent = 'Backup (textgo) active';
+      } else {
+        kpiSmsRouting.textContent = 'All Cooling Down';
+        kpiSmsRouting.className = 'count-number mt-1 text-danger';
+        kpiSmsSub.textContent = 'Messages queuing until cooldown';
+      }
     }
   }
 
@@ -132,57 +219,88 @@ document.addEventListener('DOMContentLoaded', () => {
     const isPaused = Boolean(worker.paused);
 
     // 1. Worker Header Badge
-    if (isPaused) {
-      workerStateBadge.className = 'badge badge-status badge-pending';
-      workerStateBadge.innerHTML = '<span class="worker-pulse paused"></span><span>Paused</span>';
-    } else {
-      workerStateBadge.className = 'badge badge-status badge-sent';
-      workerStateBadge.innerHTML = '<span class="worker-pulse running"></span><span>Running</span>';
+    if (workerStateBadge) {
+      if (isPaused) {
+        workerStateBadge.className = 'badge badge-status badge-pending';
+        workerStateBadge.innerHTML = '<span class="worker-pulse paused"></span><span>Paused</span>';
+      } else {
+        workerStateBadge.className = 'badge badge-status badge-sent';
+        workerStateBadge.innerHTML = '<span class="worker-pulse running"></span><span>Running</span>';
+      }
     }
 
     // 2. Worker Stats Row
-    workerStateText.textContent = isPaused ? 'Paused' : 'Running';
-    workerStateText.className = isPaused ? 'stat-value text-warning' : 'stat-value text-success';
-    workerStateSub.textContent = isPaused ? 'Background loop suspended' : '1 tick every second';
+    if (workerStateText) {
+      workerStateText.textContent = isPaused ? 'Paused' : 'Running';
+      workerStateText.className = isPaused ? 'stat-value text-warning' : 'stat-value text-success';
+    }
+    if (workerStateSub) {
+      workerStateSub.textContent = isPaused ? 'Background loop suspended' : '1 tick every second';
+    }
 
-    workerProcessedTotal.textContent = Number(worker.processed_total || 0).toLocaleString();
-    workerRecoveredTotal.textContent = Number(worker.recovered_on_start || 0).toLocaleString();
+    if (workerProcessedTotal) {
+      workerProcessedTotal.textContent = Number(worker.processed_total || 0).toLocaleString();
+    }
+    if (workerRecoveredTotal) {
+      workerRecoveredTotal.textContent = Number(worker.recovered_on_start || 0).toLocaleString();
+    }
 
-    if (worker.last_tick_at) {
-      workerLastTickTime.textContent = DakGhar.formatDateTime(worker.last_tick_at);
-      workerLastTickAge.textContent = `(${DakGhar.formatAge(worker.last_tick_at)})`;
-    } else {
-      workerLastTickTime.textContent = 'None';
-      workerLastTickAge.textContent = 'No ticks recorded yet';
+    if (workerLastTickTime && workerLastTickAge) {
+      if (worker.last_tick_at) {
+        workerLastTickTime.textContent = DakGhar.formatDateTime(worker.last_tick_at);
+        workerLastTickAge.textContent = `(${DakGhar.formatAge(worker.last_tick_at)})`;
+      } else {
+        workerLastTickTime.textContent = 'None';
+        workerLastTickAge.textContent = 'No ticks recorded yet';
+      }
     }
 
     // 3. Toggle Button Text & Icon
-    if (isPaused) {
-      toggleWorkerIcon.className = 'bi bi-play-fill';
-      toggleWorkerText.textContent = 'Resume Worker';
-      toggleWorkerBtn.className = 'btn btn-sm btn-outline-success d-inline-flex align-items-center gap-2';
-    } else {
-      toggleWorkerIcon.className = 'bi bi-pause-fill';
-      toggleWorkerText.textContent = 'Pause Worker';
-      toggleWorkerBtn.className = 'btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-2';
+    if (toggleWorkerBtn && toggleWorkerIcon && toggleWorkerText) {
+      if (isPaused) {
+        toggleWorkerIcon.className = 'bi bi-play-fill';
+        toggleWorkerText.textContent = 'Resume Worker';
+        toggleWorkerBtn.className = 'btn btn-sm btn-outline-success d-inline-flex align-items-center gap-2';
+      } else {
+        toggleWorkerIcon.className = 'bi bi-pause-fill';
+        toggleWorkerText.textContent = 'Pause Worker';
+        toggleWorkerBtn.className = 'btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-2';
+      }
+      toggleWorkerBtn.disabled = !state.hasAdminKey;
     }
 
-    toggleWorkerBtn.disabled = !state.hasAdminKey;
-    runTickBtn.disabled = !state.hasAdminKey;
+    if (runTickBtn) {
+      runTickBtn.disabled = !state.hasAdminKey;
+    }
   }
 
-  // --- Render Provider Cards ---
+  // --- Render Provider Cards Grouped by Channel ---
 
   function renderProvidersList(providers) {
     if (!providers || providers.length === 0) return;
 
-    providers.forEach(p => {
+    // Sort providers by priority (Primary = 1 first, Backup = 2 second)
+    const sortedProviders = providers.slice().sort((a, b) => (a.priority || 1) - (b.priority || 1));
+
+    sortedProviders.forEach(p => {
       let cardCol = document.getElementById(`provider-col-${p.name}`);
+
+      // Determine destination container based on channel
+      let targetContainer = null;
+      if (p.channel === 'email' && emailProvidersGrid) {
+        targetContainer = emailProvidersGrid;
+      } else if (p.channel === 'sms' && smsProvidersGrid) {
+        targetContainer = smsProvidersGrid;
+      } else if (providersGrid) {
+        targetContainer = providersGrid;
+      }
 
       if (!cardCol) {
         // Create new card column
         cardCol = createProviderCard(p);
-        providersGrid.appendChild(cardCol);
+        if (targetContainer) {
+          targetContainer.appendChild(cardCol);
+        }
       } else {
         // Update existing card in-place
         updateProviderCard(cardCol, p);
@@ -227,41 +345,37 @@ document.addEventListener('DOMContentLoaded', () => {
   function createProviderCard(p) {
     const col = document.createElement('div');
     col.id = `provider-col-${p.name}`;
-    col.className = 'col-12 col-lg-6';
+    col.className = 'col-12 col-md-6';
 
     const card = document.createElement('div');
     card.id = `provider-card-${p.name}`;
-    card.className = 'card h-100 provider-card';
+    card.className = 'card h-100 provider-card shadow-sm border';
 
     const stateInfo = getProviderStateInfo(p);
     card.classList.add(stateInfo.cardClass);
 
     // --- Card Header ---
     const header = document.createElement('div');
-    header.className = 'card-header d-flex align-items-center justify-content-between flex-wrap gap-2';
+    header.className = 'card-header bg-white py-3 d-flex align-items-center justify-content-between flex-wrap gap-2 border-bottom';
 
     // Provider Title Left
     const titleLeft = document.createElement('div');
     titleLeft.className = 'd-flex align-items-center gap-2 flex-wrap';
 
     const nameBadge = document.createElement('span');
-    nameBadge.className = 'badge badge-provider fs-6 text-uppercase fw-bold';
+    nameBadge.className = 'badge badge-provider fs-6 text-uppercase fw-bold px-2 py-1';
     nameBadge.textContent = p.name;
     titleLeft.appendChild(nameBadge);
 
-    // Channel badge
-    const channelBadge = document.createElement('span');
-    channelBadge.className = p.channel === 'email' ? 'badge badge-cat-transactional' : 'badge badge-cat-marketing';
-    const channelIcon = document.createElement('i');
-    channelIcon.className = p.channel === 'email' ? 'bi bi-envelope-fill me-1' : 'bi bi-chat-dots-fill me-1';
-    channelBadge.appendChild(channelIcon);
-    channelBadge.appendChild(document.createTextNode(p.channel.toUpperCase()));
-    titleLeft.appendChild(channelBadge);
-
-    // Priority badge
+    // Route / Priority badge with icon
     const priorityBadge = document.createElement('span');
-    priorityBadge.className = 'badge bg-light text-dark border small';
-    priorityBadge.textContent = p.priority === 1 ? 'Primary (Pri 1)' : 'Backup (Pri 2)';
+    if (p.priority === 1) {
+      priorityBadge.className = 'badge bg-primary-subtle text-primary border border-primary-subtle small d-inline-flex align-items-center gap-1';
+      priorityBadge.innerHTML = '<i class="bi bi-star-fill text-warning"></i><span>Primary Route</span>';
+    } else {
+      priorityBadge.className = 'badge bg-light text-secondary border small d-inline-flex align-items-center gap-1';
+      priorityBadge.innerHTML = '<i class="bi bi-shield-check text-info"></i><span>Backup Standby</span>';
+    }
     titleLeft.appendChild(priorityBadge);
 
     // State Badge Right
@@ -276,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Card Body ---
     const body = document.createElement('div');
-    body.className = 'card-body d-flex flex-column justify-content-between';
+    body.className = 'card-body p-3 d-flex flex-column justify-content-between';
 
     // Stats Grid inside Card
     const statsGrid = document.createElement('div');
@@ -286,10 +400,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const colFailures = document.createElement('div');
     colFailures.className = 'col-6';
     colFailures.innerHTML = `
-      <div class="provider-stat-item p-2 rounded bg-light border">
-        <div class="small text-muted">Failures in a Row</div>
-        <div class="fw-bold font-monospace" id="provider-consecutive-${p.name}">${p.consecutive_failures || 0} / 2</div>
-        <div class="stat-mini-note text-muted">2 consecutive trips cooldown</div>
+      <div class="provider-stat-item p-2 rounded bg-light border h-100">
+        <div class="small text-muted mb-1">Consecutive Failures</div>
+        <div class="fw-bold font-monospace fs-6" id="provider-consecutive-${p.name}">${p.consecutive_failures || 0} / 2</div>
+        <div class="circuit-meter mt-1 d-flex gap-1" id="circuit-meter-${p.name}">
+          <div class="circuit-pip ${p.consecutive_failures >= 1 ? 'pip-warn' : ''}"></div>
+          <div class="circuit-pip ${p.consecutive_failures >= 2 ? 'pip-danger' : ''}"></div>
+        </div>
+        <div class="stat-mini-note text-muted mt-1">Trips circuit at 2</div>
       </div>
     `;
 
@@ -297,12 +415,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const colCircuit = document.createElement('div');
     colCircuit.className = 'col-6';
     colCircuit.innerHTML = `
-      <div class="provider-stat-item p-2 rounded bg-light border">
-        <div class="small text-muted">Circuit Breaker</div>
-        <div class="fw-bold" id="provider-circuit-${p.name}">
+      <div class="provider-stat-item p-2 rounded bg-light border h-100">
+        <div class="small text-muted mb-1">Circuit Breaker</div>
+        <div class="fw-bold fs-6" id="provider-circuit-${p.name}">
           ${stateInfo.status === 'cooldown' ? 'Cooling Down' : 'Closed (Healthy)'}
         </div>
-        <div class="stat-mini-note text-muted" id="provider-open-until-${p.name}">
+        <div class="stat-mini-note text-muted mt-2" id="provider-open-until-${p.name}">
           ${p.open_until && p.open_until > (Date.now() / 1000) ? '30s cooldown timer active' : 'Normal dispatch'}
         </div>
       </div>
@@ -314,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Controls Box (Outage Toggle & Failure-Rate Slider)
     const controlsBox = document.createElement('div');
-    controlsBox.className = 'provider-controls-box p-3 rounded border';
+    controlsBox.className = 'provider-controls-box p-3 rounded border bg-light';
 
     // 1. Outage Switch Toggle
     const outageWrapper = document.createElement('div');
@@ -357,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sliderHeader.className = 'd-flex justify-content-between align-items-center mb-1';
     sliderHeader.innerHTML = `
       <label class="form-label small fw-semibold mb-0" for="slider-${p.name}">Random Timeout / Fail Rate</label>
-      <span class="badge bg-light text-dark border font-monospace" id="slider-val-badge-${p.name}">${currentPercent}%</span>
+      <span class="badge bg-white text-dark border font-monospace shadow-sm" id="slider-val-badge-${p.name}">${currentPercent}%</span>
     `;
 
     const sliderRow = document.createElement('div');
@@ -406,7 +524,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Slider Drag / Change Events
     rangeInput.addEventListener('input', () => {
       const val = parseInt(rangeInput.value, 10);
-      document.getElementById(`slider-val-badge-${p.name}`).textContent = `${val}%`;
+      const valBadge = document.getElementById(`slider-val-badge-${p.name}`);
+      if (valBadge) valBadge.textContent = `${val}%`;
       state.editingSliders.set(p.name, val);
 
       // Enable Apply only if value is different from currently saved provider rate and admin key is present
@@ -441,6 +560,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const failuresEl = cardCol.querySelector(`#provider-consecutive-${p.name}`);
     if (failuresEl) {
       failuresEl.textContent = `${p.consecutive_failures || 0} / 2`;
+    }
+
+    // Update Failure Pips
+    const meterEl = cardCol.querySelector(`#circuit-meter-${p.name}`);
+    if (meterEl) {
+      const pips = meterEl.querySelectorAll('.circuit-pip');
+      if (pips.length === 2) {
+        pips[0].className = `circuit-pip ${p.consecutive_failures >= 1 ? 'pip-warn' : ''}`;
+        pips[1].className = `circuit-pip ${p.consecutive_failures >= 2 ? 'pip-danger' : ''}`;
+      }
     }
 
     // Update Circuit Status
@@ -547,93 +676,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Worker Actions ---
 
-  toggleWorkerBtn.addEventListener('click', async () => {
-    if (!state.hasAdminKey || !state.worker) return;
+  if (toggleWorkerBtn) {
+    toggleWorkerBtn.addEventListener('click', async () => {
+      if (!state.hasAdminKey || !state.worker) return;
 
-    const targetPaused = !state.worker.paused;
+      const targetPaused = !state.worker.paused;
 
-    toggleWorkerBtn.disabled = true;
-    toggleWorkerSpinner.classList.remove('d-none');
-    toggleWorkerIcon.classList.add('d-none');
+      toggleWorkerBtn.disabled = true;
+      if (toggleWorkerSpinner) toggleWorkerSpinner.classList.remove('d-none');
+      if (toggleWorkerIcon) toggleWorkerIcon.classList.add('d-none');
 
-    try {
-      const res = await DakGhar.fetch('/api/worker', {
-        method: 'PATCH',
-        body: { paused: targetPaused }
-      });
+      try {
+        const res = await DakGhar.fetch('/api/worker', {
+          method: 'PATCH',
+          body: { paused: targetPaused }
+        });
 
-      state.worker.paused = res.paused;
-      renderWorkerStatus(state.worker);
+        state.worker.paused = res.paused;
+        renderWorkerStatus(state.worker);
+        updateExecutiveKpis(state.worker, state.providers);
 
-      DakGhar.showToast(
-        res.paused ? 'Background worker paused.' : 'Background worker resumed.',
-        res.paused ? 'info' : 'success'
-      );
+        DakGhar.showToast(
+          res.paused ? 'Background worker paused.' : 'Background worker resumed.',
+          res.paused ? 'info' : 'success'
+        );
 
-      // Re-check health indicator in navbar as well
-      DakGhar.checkHealth();
+        // Re-check health indicator in navbar as well
+        DakGhar.checkHealth();
 
-    } catch (err) {
-      const errorDetail = (err && err.data && err.data.detail) || err.message || 'Failed to update worker state';
-      DakGhar.showToast(errorDetail, 'error');
-    } finally {
-      toggleWorkerSpinner.classList.add('d-none');
-      toggleWorkerIcon.classList.remove('d-none');
-      toggleWorkerBtn.disabled = !state.hasAdminKey;
-    }
-  });
-
-  runTickBtn.addEventListener('click', async () => {
-    if (!state.hasAdminKey) return;
-
-    runTickBtn.disabled = true;
-    runTickSpinner.classList.remove('d-none');
-    runTickIcon.classList.add('d-none');
-    runTickText.textContent = 'Ticking...';
-
-    try {
-      const res = await DakGhar.fetch('/api/worker/tick', {
-        method: 'POST'
-      });
-
-      const processedCount = res.processed !== undefined ? res.processed : 0;
-
-      if (processedCount > 0) {
-        DakGhar.showToast(`Worker tick executed: ${processedCount} message(s) dispatched.`, 'success');
-      } else {
-        DakGhar.showToast('Worker tick executed: 0 messages were due.', 'info');
+      } catch (err) {
+        const errorDetail = (err && err.data && err.data.detail) || err.message || 'Failed to update worker state';
+        DakGhar.showToast(errorDetail, 'error');
+      } finally {
+        if (toggleWorkerSpinner) toggleWorkerSpinner.classList.add('d-none');
+        if (toggleWorkerIcon) toggleWorkerIcon.classList.remove('d-none');
+        toggleWorkerBtn.disabled = !state.hasAdminKey;
       }
+    });
+  }
 
-      // Re-fetch status immediately
-      await fetchDashboardData();
+  if (runTickBtn) {
+    runTickBtn.addEventListener('click', async () => {
+      if (!state.hasAdminKey) return;
 
-    } catch (err) {
-      const errorDetail = (err && err.data && err.data.detail) || err.message || 'Manual tick failed';
-      DakGhar.showToast(errorDetail, 'error');
-    } finally {
-      runTickSpinner.classList.add('d-none');
-      runTickIcon.classList.remove('d-none');
-      runTickText.textContent = 'Run One Tick';
-      runTickBtn.disabled = !state.hasAdminKey;
-    }
-  });
+      runTickBtn.disabled = true;
+      if (runTickSpinner) runTickSpinner.classList.remove('d-none');
+      if (runTickIcon) runTickIcon.classList.add('d-none');
+      if (runTickText) runTickText.textContent = 'Ticking...';
+
+      try {
+        const res = await DakGhar.fetch('/api/worker/tick', {
+          method: 'POST'
+        });
+
+        const processedCount = res.processed !== undefined ? res.processed : 0;
+
+        if (processedCount > 0) {
+          DakGhar.showToast(`Worker tick executed: ${processedCount} message(s) dispatched.`, 'success');
+        } else {
+          DakGhar.showToast('Worker tick executed: 0 messages were due.', 'info');
+        }
+
+        // Re-fetch status immediately
+        await fetchDashboardData();
+
+      } catch (err) {
+        const errorDetail = (err && err.data && err.data.detail) || err.message || 'Manual tick failed';
+        DakGhar.showToast(errorDetail, 'error');
+      } finally {
+        if (runTickSpinner) runTickSpinner.classList.add('d-none');
+        if (runTickIcon) runTickIcon.classList.remove('d-none');
+        if (runTickText) runTickText.textContent = 'Run One Tick';
+        runTickBtn.disabled = !state.hasAdminKey;
+      }
+    });
+  }
 
   // --- Manual Refresh Button ---
 
-  refreshBtn.addEventListener('click', async () => {
-    refreshBtn.disabled = true;
-    refreshIcon.classList.add('spin-animation');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      if (refreshIcon) refreshIcon.classList.add('spin-animation');
 
-    try {
-      await fetchDashboardData();
-      DakGhar.showToast('Provider and worker status refreshed.', 'info');
-    } catch (_) {
-      // Toast already handled by apiFetch
-    } finally {
-      refreshIcon.classList.remove('spin-animation');
-      refreshBtn.disabled = false;
-    }
-  });
+      try {
+        await fetchDashboardData();
+        DakGhar.showToast('Provider and worker status refreshed.', 'info');
+      } catch (_) {
+        // Toast already handled by apiFetch
+      } finally {
+        if (refreshIcon) refreshIcon.classList.remove('spin-animation');
+        refreshBtn.disabled = false;
+      }
+    });
+  }
 
   // --- Live Cooldown Countdown Timer ---
   // Ticks every 1s purely in DOM without sending API requests
