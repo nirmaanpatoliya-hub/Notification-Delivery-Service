@@ -1,0 +1,62 @@
+{
+  "seed": 2,
+  "result": "PASS",
+  "total_enqueued": 10000,
+  "sent": 9905,
+  "failed": 95,
+  "pending": 0,
+  "sending": 0,
+  "silent_drops": 0,
+  "reconciliation_total": 10000,
+  "worker_crash": {
+    "messages_claimed": 10,
+    "messages_recovered": 10
+  },
+  "provider_outages": {
+    "providers": [
+      "mailfast",
+      "smsly",
+      "textgo"
+    ],
+    "circuits_opened": true,
+    "consecutive_failures_at_release": {
+      "mailfast": 2,
+      "smsly": 2,
+      "textgo": 2
+    }
+  },
+  "total_attempts": 10328,
+  "bounced_failures": 95,
+  "delivery_delay_seconds": {
+    "p50": 144.338,
+    "p95": 249.833,
+    "max": 261.117
+  },
+  "max_failed_attempts_before_provider_switch": 1,
+  "provider_attempts": [
+    {
+      "provider": "mailfast",
+      "total": 3449,
+      "transient_failures": 108,
+      "permanent_failures": 25
+    },
+    {
+      "provider": "postbird",
+      "total": 1697,
+      "transient_failures": 43,
+      "permanent_failures": 28
+    },
+    {
+      "provider": "smsly",
+      "total": 4945,
+      "transient_failures": 166,
+      "permanent_failures": 40
+    },
+    {
+      "provider": "textgo",
+      "total": 237,
+      "transient_failures": 11,
+      "permanent_failures": 2
+    }
+  ]
+}
