@@ -910,3 +910,102 @@ body {
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   Screen 5: Fake Inbox Styles
+   ========================================================================== */
+
+/* Purple accent helpers for SMS mock deliveries */
+.text-purple {
+  color: #7e22ce !important;
+}
+
+.bg-purple-subtle {
+  background-color: #faf5ff !important;
+}
+
+.border-purple-subtle {
+  border-color: #e9d5ff !important;
+}
+
+/* Inbox Count Cards */
+.inbox-stat-card-email {
+  border-left: 4px solid var(--dg-accent);
+}
+
+.inbox-stat-card-sms {
+  border-left: 4px solid #7e22ce;
+}
+
+.inbox-stat-card-filter {
+  border-left: 4px solid #64748b;
+}
+
+/* Inbox Table Container & Interactive Rows */
+.inbox-table-container {
+  position: relative;
+  min-height: 200px;
+}
+
+.inbox-row {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.inbox-row:hover {
+  background-color: #f8fafc;
+}
+
+.inbox-row:focus {
+  outline: 2px solid var(--dg-accent);
+  outline-offset: -2px;
+}
+
+/* Simulated Envelope Modal Styling */
+.inbox-envelope-card {
+  background-color: #f8fafc;
+  border-color: var(--dg-border-color);
+}
+
+.inbox-body-preview {
+  background-color: #fdfdfd;
+  border-color: var(--dg-border-color);
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+/* Responsive adjustments for Screen 5 mobile cards (down to 375px) */
+@media (max-width: 767.98px) {
+  .inbox-row {
+    cursor: default;
+  }
+}
+
+/* ==========================================================================
+   Screen 6: How It Works Styles
+   ========================================================================== */
+
+/* Smooth scrolling for anchor jump links */
+html {
+  scroll-behavior: smooth;
+}
+
+.about-lifecycle-step {
+  background-color: #f8fafc;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  border-left: 3px solid var(--dg-accent) !important;
+}
+
+.about-lifecycle-step:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--dg-shadow-sm);
+  background-color: #ffffff;
+}
+
+/* Screen 6 mobile adaptations (down to 375px) */
+@media (max-width: 575.98px) {
+  .about-lifecycle-step {
+    padding: 0.75rem !important;
+  }
+}
