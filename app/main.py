@@ -1,10 +1,12 @@
 import re
 import time
 import sqlite3
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request, Depends
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from app.db import get_connection, initialize_database, reset_database
@@ -47,6 +49,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/static/send.html")
 
 #Consistent API error response
 def api_error(status_code, code, detail):

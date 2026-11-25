@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fake Inbox · DakGhar</title>
+
+  <!-- Bootstrap 5.3 CSS & Bootstrap Icons CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Mobile Top Header (Visible on screens < 992px) -->
+  <header class="mobile-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-mailbox2 text-primary fs-4"></i>
+      <span class="fw-bold">DakGhar</span>
+    </div>
+    <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-label="Toggle navigation">
+      <i class="bi bi-list fs-5"></i>
+    </button>
+  </header>
+
+  <div class="app-layout">
+
+    <!-- Dark Navy Sidebar (Desktop) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <a href="outbox.html" class="sidebar-brand">
+          <i class="bi bi-mailbox2 text-primary fs-3"></i>
+          <div>
+            DakGhar
+            <span class="brand-sub">Notification Delivery</span>
+          </div>
+        </a>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="nav-item">
+          <a href="send.html" class="nav-link">
+            <i class="bi bi-send-fill"></i>
+            <span>Send Message</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="outbox.html" class="nav-link">
+            <i class="bi bi-inbox-fill"></i>
+            <span>Outbox</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="providers.html" class="nav-link">
+            <i class="bi bi-hdd-network-fill"></i>
+            <span>Providers &amp; Worker</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="inbox.html" class="nav-link active">
+            <i class="bi bi-check2-all"></i>
+            <span>Fake Inbox</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="about.html" class="nav-link">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>How It Works</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="worker-status-box">
+          <span><span class="worker-pulse running"></span><span class="worker-status-text">Worker Status</span></span>
+          <a href="providers.html" class="text-white text-decoration-none small" title="View Worker"><i class="bi bi-gear"></i></a>
+        </div>
+        <button class="btn btn-sm btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#settingsModal">
+          <i class="bi bi-key-fill"></i>
+          <span>API Key Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Offcanvas Sidebar -->
+    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileSidebar">
+      <div class="offcanvas-header border-bottom border-secondary">
+        <h5 class="offcanvas-title d-flex align-items-center gap-2">
+          <i class="bi bi-mailbox2 text-primary"></i> DakGhar
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column p-0">
+        <ul class="sidebar-nav flex-grow-1">
+          <li class="nav-item"><a href="send.html" class="nav-link"><i class="bi bi-send-fill"></i> Send Message</a></li>
+          <li class="nav-item"><a href="outbox.html" class="nav-link"><i class="bi bi-inbox-fill"></i> Outbox</a></li>
+          <li class="nav-item"><a href="providers.html" class="nav-link"><i class="bi bi-hdd-network-fill"></i> Providers &amp; Worker</a></li>
+          <li class="nav-item"><a href="inbox.html" class="nav-link active"><i class="bi bi-check2-all"></i> Fake Inbox</a></li>
+          <li class="nav-item"><a href="about.html" class="nav-link"><i class="bi bi-info-circle-fill"></i> How It Works</a></li>
+        </ul>
+        <div class="p-3 border-top border-secondary">
+          <button class="btn btn-sm btn-outline-light w-100" data-bs-toggle="modal" data-bs-target="#settingsModal">
+            <i class="bi bi-key-fill"></i> API Key Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="app-main">
+
+      <!-- Page Header -->
+      <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+          <h1 class="page-title">Fake Inbox</h1>
+          <p class="page-subtitle">Simulated mailbox of messages successfully delivered by mock email and SMS providers.</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <div class="form-check form-switch mb-0 d-none d-sm-block">
+            <input class="form-check-input" type="checkbox" role="switch" id="autoRefreshSwitch" checked>
+            <label class="form-check-label small" for="autoRefreshSwitch" id="autoRefreshLabel">Auto-refresh (3s)</label>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" id="refreshBtn">
+            <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Simulation Notice Banner -->
+      <div class="alert alert-info py-2 px-3 small d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4 border-info-subtle bg-info-subtle text-info-emphasis">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-info-circle-fill fs-5"></i>
+          <span><strong>Simulated Delivery Record:</strong> This mailbox records notifications delivered by mock providers (<code>mailfast</code>, <code>postbird</code>, <code>smsly</code>, <code>textgo</code>). Real emails and SMS messages are never sent outside DakGhar.</span>
+        </div>
+        <a href="about.html" class="btn btn-sm btn-outline-info text-info-emphasis py-1 px-2 text-decoration-none">
+          <i class="bi bi-book me-1"></i>How It Works
+        </a>
+      </div>
+
+      <!-- Unauthenticated Notice Banner (Shown on 401) -->
+      <div id="authNotice" class="alert alert-warning py-2 px-3 small d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4 border-warning-subtle bg-warning-subtle text-warning-emphasis d-none">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-shield-exclamation fs-5"></i>
+          <span><strong>API Key Required:</strong> An API key is required to view the Fake Inbox. Please enter your Sender Key or Admin Key.</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-dark py-1 px-2" data-bs-toggle="modal" data-bs-target="#settingsModal">
+          <i class="bi bi-key-fill me-1"></i>Configure API Key
+        </button>
+      </div>
+
+      <!-- Top Summary Stat Cards -->
+      <div class="row g-3 mb-4">
+        <!-- Total Delivered -->
+        <div class="col-sm-6 col-xl-3">
+          <div class="card count-card card-sent h-100" id="cardTotalDelivered" role="button" tabindex="0" title="Click to view all delivered messages">
+            <div class="card-body p-3 d-flex align-items-center justify-content-between">
+              <div>
+                <span class="count-label">Total Delivered</span>
+                <div class="count-number mt-1 text-success" id="countTotalDelivered">—</div>
+                <div class="small text-muted">All mock deliveries</div>
+              </div>
+              <div class="fs-1 text-success opacity-75">
+                <i class="bi bi-check2-all"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email Delivered -->
+        <div class="col-sm-6 col-xl-3">
+          <div class="card count-card h-100 inbox-stat-card-email" id="cardEmailDelivered" role="button" tabindex="0" title="Click to filter by Email">
+            <div class="card-body p-3 d-flex align-items-center justify-content-between">
+              <div>
+                <span class="count-label">Email Deliveries</span>
+                <div class="count-number mt-1 text-primary" id="countEmailDelivered">—</div>
+                <div class="small text-muted">mailfast &amp; postbird</div>
+              </div>
+              <div class="fs-1 text-primary opacity-75">
+                <i class="bi bi-envelope-check"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SMS Delivered -->
+        <div class="col-sm-6 col-xl-3">
+          <div class="card count-card h-100 inbox-stat-card-sms" id="cardSmsDelivered" role="button" tabindex="0" title="Click to filter by SMS">
+            <div class="card-body p-3 d-flex align-items-center justify-content-between">
+              <div>
+                <span class="count-label">SMS Deliveries</span>
+                <div class="count-number mt-1 text-purple" id="countSmsDelivered">—</div>
+                <div class="small text-muted">smsly &amp; textgo</div>
+              </div>
+              <div class="fs-1 text-purple opacity-75">
+                <i class="bi bi-chat-text-fill"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Count -->
+        <div class="col-sm-6 col-xl-3">
+          <div class="card count-card h-100 inbox-stat-card-filter" id="cardFilterCount">
+            <div class="card-body p-3 d-flex align-items-center justify-content-between">
+              <div>
+                <span class="count-label">Showing Now</span>
+                <div class="count-number mt-1 text-secondary" id="countFilteredResults">—</div>
+                <div class="small text-muted" id="filterStatusText">All deliveries</div>
+              </div>
+              <div class="fs-1 text-secondary opacity-75">
+                <i class="bi bi-funnel"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters & Controls Card -->
+      <div class="card mb-3">
+        <div class="card-body p-3">
+          <div class="row g-2 align-items-center">
+
+            <!-- Provider Filter (backend-driven) -->
+            <div class="col-12 col-sm-6 col-md-3">
+              <label for="filterProvider" class="form-label small text-muted mb-1">Filter by Provider</label>
+              <select class="form-select form-select-sm" id="filterProvider">
+                <option value="">All Providers</option>
+                <!-- Populated dynamically from backend /api/providers -->
+              </select>
+            </div>
+
+            <!-- Channel Filter (Email / SMS) -->
+            <div class="col-12 col-sm-6 col-md-3">
+              <label for="filterChannel" class="form-label small text-muted mb-1">Filter by Channel</label>
+              <select class="form-select form-select-sm" id="filterChannel">
+                <option value="">All Channels</option>
+                <option value="email">Email</option>
+                <option value="sms">SMS</option>
+              </select>
+            </div>
+
+            <!-- Search Filter -->
+            <div class="col-12 col-sm-8 col-md-4">
+              <label for="filterSearch" class="form-label small text-muted mb-1">Search Recipient or Content</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" class="form-control" id="filterSearch" placeholder="Filter by email, phone, or words...">
+              </div>
+            </div>
+
+            <!-- Clear Filters Button -->
+            <div class="col-12 col-sm-4 col-md-2">
+              <label class="form-label small text-muted mb-1 d-none d-md-block">&nbsp;</label>
+              <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="clearFiltersBtn">
+                <i class="bi bi-x-circle me-1"></i>Reset Filters
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages Table Card -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center py-2 px-3 flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-mailbox2 text-primary"></i>
+            <span class="fw-semibold">Delivered Messages</span>
+            <span class="badge bg-light text-muted border ms-1" id="inboxStatusCount">0 messages</span>
+          </div>
+          <div class="small text-muted d-none d-sm-block" id="inboxLastUpdated">
+            Auto-refresh active
+          </div>
+        </div>
+
+        <div class="inbox-table-container">
+
+          <!-- Loading Spinner -->
+          <div class="d-flex flex-column justify-content-center align-items-center py-5 d-none" id="tableLoadingSpinner">
+            <div class="spinner-border text-primary mb-2" role="status">
+              <span class="visually-hidden">Loading inbox...</span>
+            </div>
+            <div class="small text-muted">Fetching delivered messages from /api/inbox...</div>
+          </div>
+
+          <!-- Error State -->
+          <div class="text-center py-5 px-3 d-none" id="tableErrorContainer">
+            <i class="bi bi-exclamation-triangle text-danger fs-1 d-block mb-2"></i>
+            <h5 class="fw-semibold text-secondary" id="tableErrorTitle">Unable to load Fake Inbox</h5>
+            <p class="text-muted small mb-3" id="tableErrorMessage">An error occurred while connecting to the API.</p>
+            <div class="d-flex justify-content-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="retryFetchBtn">
+                <i class="bi bi-arrow-clockwise me-1"></i>Try Again
+              </button>
+              <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                <i class="bi bi-key me-1"></i>Check API Key
+              </button>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="text-center py-5 px-3 d-none" id="emptyStateContainer">
+            <i class="bi bi-inbox text-muted fs-1 d-block mb-2"></i>
+            <h5 class="fw-semibold text-secondary" id="emptyStateTitle">No messages yet</h5>
+            <p class="text-muted small mb-3" id="emptyStateMessage">When notifications are picked up by the background worker and successfully sent through mock providers, they will appear in this simulated inbox.</p>
+            <a href="send.html" class="btn btn-sm btn-primary">
+              <i class="bi bi-send me-1"></i>Send a Notification
+            </a>
+          </div>
+
+          <!-- Table for Desktop & Stacked Cards on Mobile -->
+          <div class="table-responsive" id="tableWrapper">
+            <table class="table table-hover table-responsive-cards align-middle mb-0" id="inboxTable">
+              <thead>
+                <tr>
+                  <th scope="col" style="width: 100px;"># Message</th>
+                  <th scope="col" style="width: 140px;">Delivered</th>
+                  <th scope="col" style="width: 130px;">Provider</th>
+                  <th scope="col" style="width: 200px;">Recipient</th>
+                  <th scope="col">Subject / Delivered Content</th>
+                  <th scope="col" style="width: 100px;" class="text-end">Preview</th>
+                </tr>
+              </thead>
+              <tbody id="inboxTableBody">
+                <!-- Dynamically populated by inbox.js -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- Table Footer / Count Info -->
+        <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-2 px-3 small text-muted">
+          <span id="footerCountText">Showing delivered messages</span>
+          <a href="outbox.html" class="text-decoration-none">
+            <i class="bi bi-box-arrow-up-right me-1"></i>View Message Outbox Queue
+          </a>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- View Delivered Envelope / Message Modal -->
+  <div class="modal fade" id="viewMessageModal" tabindex="-1" aria-labelledby="viewMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-envelope-paper-fill text-primary fs-5" id="modalChannelIcon"></i>
+            <h5 class="modal-title mb-0" id="viewMessageModalLabel">Delivered Notification</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+
+          <!-- Envelope Header Box -->
+          <div class="inbox-envelope-card p-3 rounded mb-3 bg-light border">
+            <div class="row g-2 small">
+              <div class="col-sm-6">
+                <span class="text-muted d-block">Delivered By:</span>
+                <span class="fw-semibold font-monospace" id="modalProviderName">—</span>
+              </div>
+              <div class="col-sm-6">
+                <span class="text-muted d-block">Delivered At:</span>
+                <span class="fw-semibold" id="modalDeliveredAt">—</span>
+              </div>
+              <div class="col-sm-6">
+                <span class="text-muted d-block">Recipient:</span>
+                <span class="fw-semibold font-monospace text-break" id="modalRecipient">—</span>
+              </div>
+              <div class="col-sm-6">
+                <span class="text-muted d-block">Outbox Record:</span>
+                <a href="#" class="fw-semibold text-primary font-monospace text-decoration-none" id="modalMessageLink">
+                  <span id="modalMessageId">#—</span> <i class="bi bi-box-arrow-up-right small"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Email Subject Line (Hidden for SMS) -->
+          <div class="mb-3" id="modalSubjectContainer">
+            <label class="form-label text-muted small fw-bold text-uppercase mb-1">Subject</label>
+            <div class="p-2 bg-white rounded border fw-semibold" id="modalSubject">—</div>
+          </div>
+
+          <!-- Delivered Message Body -->
+          <div class="mb-2">
+            <label class="form-label text-muted small fw-bold text-uppercase mb-1">Delivered Message Body</label>
+            <div class="p-3 bg-white rounded border font-monospace small text-break inbox-body-preview" id="modalBody" style="white-space: pre-wrap; min-height: 100px;">—</div>
+          </div>
+
+        </div>
+        <div class="modal-footer bg-light d-flex justify-content-between">
+          <a href="#" class="btn btn-sm btn-outline-primary" id="modalDetailBtn">
+            <i class="bi bi-clock-history me-1"></i>View Lifecycle &amp; Attempts in Detail
+          </a>
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal for API Key -->
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settingsModalLabel"><i class="bi bi-key-fill text-primary me-2"></i>API Key Settings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">
+            DakGhar enforces permissions using two separate secret keys sent in request headers. Keys are stored only in <code>sessionStorage</code> for this browser session and sent to the DakGhar API in request headers (<code>X-Api-Key</code> or <code>X-Admin-Key</code>). They are cleared when the browser tab closes.
+          </p>
+
+          <!-- Sender Key Input -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="settingsSenderKeyInput" class="form-label mb-0">Sender Key (X-Api-Key)</label>
+              <span id="settingsSenderBadge" class="badge bg-secondary">No Sender Key</span>
+            </div>
+            <input type="password" class="form-control font-monospace form-control-sm" id="settingsSenderKeyInput" placeholder="Paste your Sender Key here">
+            <div class="form-text small">
+              Used for enqueuing messages and viewing the outbox and inbox. Sent exclusively via the <code>X-Api-Key</code> header.
+            </div>
+          </div>
+
+          <!-- Admin Key Input -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="settingsAdminKeyInput" class="form-label mb-0">Admin Key (X-Admin-Key)</label>
+              <span id="settingsAdminBadge" class="badge bg-secondary">No Admin Key</span>
+            </div>
+            <input type="password" class="form-control font-monospace form-control-sm" id="settingsAdminKeyInput" placeholder="Paste your Admin Key here">
+            <div class="form-text small">
+              Used for worker pause/resume, single tick, provider outage switches, and database reset. Sent exclusively via the <code>X-Admin-Key</code> header.
+            </div>
+          </div>
+
+          <div class="pt-2 border-top d-flex justify-content-between">
+            <button type="button" class="btn btn-sm btn-outline-danger" id="settingsClearKeysBtn">Clear Keys from Session</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="settingsClearPrefsBtn">Clear Display Preferences</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="settingsSaveBtn">Save Keys</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5.3 JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Shared API Client & Screen 5 Logic -->
+  <script src="js/api.js"></script>
+  <script src="js/inbox.js"></script>
+</body>
+</html>

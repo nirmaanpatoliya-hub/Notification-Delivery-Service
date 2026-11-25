@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Send Notification · DakGhar</title>
+
+  <!-- Bootstrap 5.3 CSS & Bootstrap Icons CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Mobile Top Header (Visible on screens < 992px) -->
+  <header class="mobile-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-mailbox2 text-primary fs-4"></i>
+      <span class="fw-bold">DakGhar</span>
+    </div>
+    <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-label="Toggle navigation">
+      <i class="bi bi-list fs-5"></i>
+    </button>
+  </header>
+
+  <div class="app-layout">
+
+    <!-- Dark Navy Sidebar (Desktop) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <a href="outbox.html" class="sidebar-brand">
+          <i class="bi bi-mailbox2 text-primary fs-3"></i>
+          <div>
+            DakGhar
+            <span class="brand-sub">Notification Outbox</span>
+          </div>
+        </a>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="nav-item">
+          <a href="send.html" class="nav-link active">
+            <i class="bi bi-send-fill"></i>
+            <span>Send Message</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="outbox.html" class="nav-link">
+            <i class="bi bi-inbox-fill"></i>
+            <span>Outbox</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="providers.html" class="nav-link">
+            <i class="bi bi-hdd-network-fill"></i>
+            <span>Providers & Worker</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="inbox.html" class="nav-link">
+            <i class="bi bi-check2-all"></i>
+            <span>Fake Inbox</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="about.html" class="nav-link">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>How It Works</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="worker-status-box">
+          <span><span class="worker-pulse running"></span><span class="worker-status-text">Worker Status</span></span>
+          <a href="providers.html" class="text-white text-decoration-none small" title="View Worker"><i class="bi bi-gear"></i></a>
+        </div>
+        <button class="btn btn-sm btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#settingsModal">
+          <i class="bi bi-key-fill"></i>
+          <span>API Key Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Offcanvas Sidebar -->
+    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileSidebar">
+      <div class="offcanvas-header border-bottom border-secondary">
+        <h5 class="offcanvas-title d-flex align-items-center gap-2">
+          <i class="bi bi-mailbox2 text-primary"></i> DakGhar
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column p-0">
+        <ul class="sidebar-nav flex-grow-1">
+          <li class="nav-item"><a href="send.html" class="nav-link active"><i class="bi bi-send-fill"></i> Send Message</a></li>
+          <li class="nav-item"><a href="outbox.html" class="nav-link"><i class="bi bi-inbox-fill"></i> Outbox</a></li>
+          <li class="nav-item"><a href="providers.html" class="nav-link"><i class="bi bi-hdd-network-fill"></i> Providers & Worker</a></li>
+          <li class="nav-item"><a href="inbox.html" class="nav-link"><i class="bi bi-check2-all"></i> Fake Inbox</a></li>
+          <li class="nav-item"><a href="about.html" class="nav-link"><i class="bi bi-info-circle-fill"></i> How It Works</a></li>
+        </ul>
+        <div class="p-3 border-top border-secondary">
+          <button class="btn btn-sm btn-outline-light w-100" data-bs-toggle="modal" data-bs-target="#settingsModal">
+            <i class="bi bi-key-fill"></i> API Key Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <div class="page-header">
+        <h1 class="page-title">Send Notification</h1>
+        <p class="page-subtitle">Enqueue a new email or SMS notification into the outbox for background delivery.</p>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-8 col-xl-7">
+
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-pencil-square me-2 text-primary"></i>Compose Notification</span>
+              <span class="badge bg-light text-dark border">POST /api/messages</span>
+            </div>
+
+            <div class="card-body">
+              <form id="sendMessageForm" novalidate>
+
+                <!-- Channel Selector -->
+                <div class="mb-3">
+                  <label class="form-label d-block">Channel</label>
+                  <div class="btn-group w-100" role="group" aria-label="Select Channel">
+                    <input type="radio" class="btn-check" name="channelRadio" id="channelEmail" value="email" checked>
+                    <label class="btn btn-outline-primary" for="channelEmail">
+                      <i class="bi bi-envelope-fill me-1"></i> Email
+                    </label>
+
+                    <input type="radio" class="btn-check" name="channelRadio" id="channelSms" value="sms">
+                    <label class="btn btn-outline-primary" for="channelSms">
+                      <i class="bi bi-chat-dots-fill me-1"></i> SMS
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Category Selector -->
+                <div class="mb-3">
+                  <label class="form-label d-block">Category</label>
+                  <div class="btn-group w-100" role="group" aria-label="Select Category">
+                    <input type="radio" class="btn-check" name="categoryRadio" id="catTransactional" value="transactional" checked>
+                    <label class="btn btn-outline-secondary" for="catTransactional">
+                      <i class="bi bi-shield-check me-1"></i> Transactional (High Priority)
+                    </label>
+
+                    <input type="radio" class="btn-check" name="categoryRadio" id="catMarketing" value="marketing">
+                    <label class="btn btn-outline-secondary" for="catMarketing">
+                      <i class="bi bi-megaphone me-1"></i> Marketing
+                    </label>
+                  </div>
+                  <div class="form-text">Transactional messages (OTPs, order alerts) are always processed before marketing campaigns.</div>
+                </div>
+
+                <!-- Quick-Fill Preset Buttons -->
+                <div class="mb-3">
+                  <label class="form-label d-block text-muted small">Quick-fill Demo Presets:</label>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="quick-fill-btn" id="btnPresetValidEmail">
+                      <i class="bi bi-check-circle-fill text-success me-1"></i>Valid Email
+                    </button>
+                    <button type="button" class="quick-fill-btn" id="btnPresetBounceEmail">
+                      <i class="bi bi-x-circle-fill text-danger me-1"></i>Bounce Email
+                    </button>
+                    <button type="button" class="quick-fill-btn" id="btnPresetValidSms">
+                      <i class="bi bi-check-circle-fill text-success me-1"></i>Valid SMS
+                    </button>
+                    <button type="button" class="quick-fill-btn" id="btnPresetBounceSms">
+                      <i class="bi bi-x-circle-fill text-danger me-1"></i>Bounce SMS
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Recipient Field with Live Validation -->
+                <div class="mb-3">
+                  <label for="recipientInput" class="form-label" id="recipientLabel">Recipient (Email Address)</label>
+                  <div class="input-group has-validation">
+                    <span class="input-group-text" id="recipientIcon"><i class="bi bi-at"></i></span>
+                    <input type="text" class="form-control" id="recipientInput" placeholder="name@domain.tld" required autocomplete="off">
+                    <div class="invalid-feedback" id="recipientFeedback"></div>
+                  </div>
+                  <div class="form-text" id="recipientHelp">Must match email format (e.g., user@shop.example). Max 254 characters.</div>
+                </div>
+
+                <!-- Subject Field (Email only) -->
+                <div class="mb-3" id="subjectGroup">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <label for="subjectInput" class="form-label">Subject</label>
+                    <span class="char-counter" id="subjectCounter">0 / 150</span>
+                  </div>
+                  <input type="text" class="form-control" id="subjectInput" placeholder="Notification subject line" maxlength="150">
+                  <div class="form-text">Required for email. 1 to 150 characters.</div>
+                </div>
+
+                <!-- Message Body -->
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <label for="bodyInput" class="form-label">Message Body</label>
+                    <span class="char-counter" id="bodyCounter">0 / 2,000</span>
+                  </div>
+                  <textarea class="form-control" id="bodyInput" rows="4" placeholder="Write your notification message here..." required></textarea>
+                  <div class="form-text" id="bodyHelp">Email body must be between 1 and 2,000 characters.</div>
+                </div>
+
+                <!-- Optional Idempotency Key Accordion -->
+                <div class="accordion mb-4" id="advancedOptionsAccordion">
+                  <div class="accordion-item border-0">
+                    <h2 class="accordion-header">
+                      <button class="accordion-button collapsed px-0 py-2 bg-transparent text-muted small" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdvanced" aria-expanded="false">
+                        <i class="bi bi-sliders me-2"></i>Advanced Options (Idempotency Key)
+                      </button>
+                    </h2>
+                    <div id="collapseAdvanced" class="accordion-collapse collapse">
+                      <div class="pt-2">
+                        <label for="idempotencyKeyInput" class="form-label small">Idempotency Key (Optional)</label>
+                        <input type="text" class="form-control form-control-sm font-monospace" id="idempotencyKeyInput" placeholder="e.g., req_order_98124">
+                        <div class="form-text small">Sending the exact same key with the same payload returns the original message without duplicating it.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn btn-primary d-flex align-items-center gap-2" id="submitBtn">
+                    <span class="spinner-border spinner-border-sm d-none" id="submitSpinner" role="status" aria-hidden="true"></span>
+                    <i class="bi bi-send" id="submitIcon"></i>
+                    <span id="submitText">Send Notification</span>
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" id="resetBtn">Reset</button>
+                </div>
+
+              </form>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Sidebar Info Card -->
+        <div class="col-lg-4 col-xl-5">
+          <div class="card">
+            <div class="card-header">
+              <i class="bi bi-info-circle text-primary me-2"></i>How DakGhar Handles S1
+            </div>
+            <div class="card-body text-secondary small">
+              <h6 class="text-dark fw-semibold">1. Instant SQLite Save</h6>
+              <p>When you click <strong>Send</strong>, the API validates the inputs and saves the message into the SQLite <code>messages</code> table as <code>pending</code> before returning <code>201 Created</code>.</p>
+
+              <h6 class="text-dark fw-semibold">2. Background Worker Pick-Up</h6>
+              <p>The background worker checks the database every second, claims due messages (transactional first), and attempts delivery through the mock providers.</p>
+
+              <h6 class="text-dark fw-semibold">3. Testing Provider Outages</h6>
+              <p>Try switching on an outage in <strong>Providers & Worker</strong> and then sending messages here to watch DakGhar automatically failover to the backup provider!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Settings Modal for API Key -->
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settingsModalLabel"><i class="bi bi-key-fill text-primary me-2"></i>API Key Settings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Requirement 6: Accurate explanatory text -->
+          <p class="small text-muted">
+            DakGhar enforces permissions using two separate secret keys sent in request headers. Keys are stored only in <code>sessionStorage</code> for this browser session and sent to the DakGhar API in request headers (<code>X-Api-Key</code> or <code>X-Admin-Key</code>). They are cleared when the browser tab closes.
+          </p>
+
+          <!-- Sender Key Input -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="settingsSenderKeyInput" class="form-label mb-0">Sender Key (X-Api-Key)</label>
+              <span id="settingsSenderBadge" class="badge bg-secondary">No Sender Key</span>
+            </div>
+            <input type="password" class="form-control font-monospace form-control-sm" id="settingsSenderKeyInput" placeholder="Paste your Sender Key here">
+            <div class="form-text small">
+              Used for enqueuing messages and viewing the outbox. Sent exclusively via the <code>X-Api-Key</code> header.
+            </div>
+          </div>
+
+          <!-- Admin Key Input -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="settingsAdminKeyInput" class="form-label mb-0">Admin Key (X-Admin-Key)</label>
+              <span id="settingsAdminBadge" class="badge bg-secondary">No Admin Key</span>
+            </div>
+            <input type="password" class="form-control font-monospace form-control-sm" id="settingsAdminKeyInput" placeholder="Paste your Admin Key here">
+            <div class="form-text small">
+              Used for worker pause/resume, single tick, provider outage switches, and database reset. Sent exclusively via the <code>X-Admin-Key</code> header.
+            </div>
+          </div>
+
+          <div class="pt-2 border-top d-flex justify-content-between">
+            <button type="button" class="btn btn-sm btn-outline-danger" id="settingsClearKeysBtn">Clear Keys from Session</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="settingsClearPrefsBtn">Clear Display Preferences</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="settingsSaveBtn">Save Keys</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5.3 JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Shared API Client & Screen 1 Logic -->
+  <script src="js/api.js"></script>
+  <script src="js/send.js"></script>
+</body>
+</html>

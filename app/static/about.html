@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How It Works · DakGhar</title>
+
+  <!-- Bootstrap 5.3 CSS & Bootstrap Icons CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Mobile Top Header (Visible on screens < 992px) -->
+  <header class="mobile-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-mailbox2 text-primary fs-4"></i>
+      <span class="fw-bold">DakGhar</span>
+    </div>
+    <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-label="Toggle navigation">
+      <i class="bi bi-list fs-5"></i>
+    </button>
+  </header>
+
+  <div class="app-layout">
+
+    <!-- Dark Navy Sidebar (Desktop) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <a href="outbox.html" class="sidebar-brand">
+          <i class="bi bi-mailbox2 text-primary fs-3"></i>
+          <div>
+            DakGhar
+            <span class="brand-sub">Notification Delivery</span>
+          </div>
+        </a>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="nav-item">
+          <a href="send.html" class="nav-link">
+            <i class="bi bi-send-fill"></i>
+            <span>Send Message</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="outbox.html" class="nav-link">
+            <i class="bi bi-inbox-fill"></i>
+            <span>Outbox</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="providers.html" class="nav-link">
+            <i class="bi bi-hdd-network-fill"></i>
+            <span>Providers &amp; Worker</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="inbox.html" class="nav-link">
+            <i class="bi bi-check2-all"></i>
+            <span>Fake Inbox</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="about.html" class="nav-link active">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>How It Works</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="worker-status-box">
+          <span><span class="worker-pulse running"></span><span class="worker-status-text">Worker Status</span></span>
+          <a href="providers.html" class="text-white text-decoration-none small" title="View Worker"><i class="bi bi-gear"></i></a>
+        </div>
+        <button class="btn btn-sm btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#settingsModal">
+          <i class="bi bi-key-fill"></i>
+          <span>API Key Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Offcanvas Sidebar -->
+    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileSidebar">
+      <div class="offcanvas-header border-bottom border-secondary">
+        <h5 class="offcanvas-title d-flex align-items-center gap-2">
+          <i class="bi bi-mailbox2 text-primary"></i> DakGhar
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column p-0">
+        <ul class="sidebar-nav flex-grow-1">
+          <li class="nav-item"><a href="send.html" class="nav-link"><i class="bi bi-send-fill"></i> Send Message</a></li>
+          <li class="nav-item"><a href="outbox.html" class="nav-link"><i class="bi bi-inbox-fill"></i> Outbox</a></li>
+          <li class="nav-item"><a href="providers.html" class="nav-link"><i class="bi bi-hdd-network-fill"></i> Providers &amp; Worker</a></li>
+          <li class="nav-item"><a href="inbox.html" class="nav-link"><i class="bi bi-check2-all"></i> Fake Inbox</a></li>
+          <li class="nav-item"><a href="about.html" class="nav-link active"><i class="bi bi-info-circle-fill"></i> How It Works</a></li>
+        </ul>
+        <div class="p-3 border-top border-secondary">
+          <button class="btn btn-sm btn-outline-light w-100" data-bs-toggle="modal" data-bs-target="#settingsModal">
+            <i class="bi bi-key-fill"></i> API Key Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="app-main">
+
+      <!-- Page Header -->
+      <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h1 class="page-title">How DakGhar Works</h1>
+          <p class="page-subtitle">A deep dive into the transactional outbox pattern, background worker loop, retries, circuit breaking, and crash recovery.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a href="send.html" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-2">
+            <i class="bi bi-plus-lg"></i>
+            <span>Send Message</span>
+          </a>
+          <a href="outbox.html" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2">
+            <i class="bi bi-inbox-fill"></i>
+            <span>View Outbox</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Jump Navigation Pills -->
+      <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body p-2 d-flex flex-wrap gap-2 align-items-center bg-light rounded">
+          <span class="small text-muted fw-bold text-uppercase px-2">Jump to:</span>
+          <a href="#overview" class="badge text-bg-light border text-decoration-none py-2 px-3 text-secondary">Overview</a>
+          <a href="#lifecycle" class="badge text-bg-light border text-decoration-none py-2 px-3 text-secondary">Lifecycle Flow</a>
+          <a href="#statuses" class="badge text-bg-light border text-decoration-none py-2 px-3 text-secondary">State Machine</a>
+          <a href="#retries" class="badge text-bg-light border text-decoration-none py-2 px-3 text-secondary">Retries &amp; Backoff</a>
+          <a href="#failover" class="badge text-bg-light border text-decoration-none py-2 px-3 text-secondary">Circuit Breaker</a>
+          <a href="#recovery" class="badge text-bg-light border text-decoration-none py-2 px-3 text-secondary">Crash Recovery</a>
+          <a href="#examples" class="badge text-bg-light border text-decoration-none py-2 px-3 text-secondary">Worked Examples</a>
+          <a href="#glossary" class="badge text-bg-light border text-decoration-none py-2 px-3 text-secondary">Glossary</a>
+        </div>
+      </div>
+
+      <!-- 1. Introduction & Overview -->
+      <section id="overview" class="mb-5">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-compass text-primary fs-5"></i>
+            <h5 class="mb-0 fw-bold">1. Introduction &amp; The Core Problem</h5>
+          </div>
+          <div class="card-body p-4">
+            <div class="row g-4 align-items-center">
+              <div class="col-lg-7">
+                <h6 class="fw-bold text-dark mb-2">What is DakGhar (डाकघर)?</h6>
+                <p class="text-secondary small mb-3">
+                  <strong>DakGhar</strong> (Hindi for <em>“post office”</em>) is a reliable notification delivery service built using the <strong>Transactional Outbox Pattern</strong>. It decouples product code (such as e-commerce checkout or OTP generation) from third-party email and SMS providers.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-2">The Problem: Why Direct Sending Fails</h6>
+                <p class="text-secondary small mb-3">
+                  Most simple applications call third-party email or SMS APIs directly inside their HTTP web request. If the provider is slow or down, the user’s request hangs or crashes, and the notification is silently lost forever.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-2">The DakGhar Solution</h6>
+                <p class="text-secondary small mb-0">
+                  With DakGhar, when your app sends a notification, DakGhar saves it into an atomic SQLite outbox table and replies in milliseconds: <code>201 Accepted</code>. A dedicated background worker loop takes responsibility for sending it, retrying temporary outages, switching to backup providers, and keeping an audit log of every attempt. Messages are persisted in the SQLite outbox so they can be retried after temporary failures or application restarts.
+                </p>
+              </div>
+
+              <div class="col-lg-5">
+                <div class="alert alert-info border-info-subtle bg-info-subtle text-info-emphasis mb-0 p-3 rounded">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-info-circle-fill fs-5"></i>
+                    <strong class="small">Simulated Delivery Architecture</strong>
+                  </div>
+                  <p class="small mb-2">
+                    DakGhar uses four internal <strong>mock providers</strong>:
+                  </p>
+                  <ul class="small mb-2 ps-3">
+                    <li><strong>Email:</strong> <code>mailfast</code> (Primary) &amp; <code>postbird</code> (Backup)</li>
+                    <li><strong>SMS:</strong> <code>smsly</code> (Primary) &amp; <code>textgo</code> (Backup)</li>
+                  </ul>
+                  <p class="small mb-0 text-muted">
+                    Successful sends write to the simulated <a href="inbox.html" class="fw-bold text-info-emphasis">Fake Inbox</a>. No real emails or SMS are sent outside the system.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. End-to-End Lifecycle Flow -->
+      <section id="lifecycle" class="mb-5">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-arrow-repeat text-primary fs-5"></i>
+            <h5 class="mb-0 fw-bold">2. End-to-End Notification Lifecycle</h5>
+          </div>
+          <div class="card-body p-4">
+            <p class="text-secondary small mb-4">
+              Here is what happens under the hood from the millisecond a notification is enqueued until it reaches final resolution:
+            </p>
+
+            <div class="row g-3">
+              <!-- Step 1 -->
+              <div class="col-md-6 col-xl-4">
+                <div class="about-lifecycle-step h-100 p-3 rounded border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary rounded-circle px-2 py-1">1</span>
+                    <strong class="text-dark small">Client Enqueues Message</strong>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    Client calls <code>POST /api/messages</code> with channel, category, recipient, and message body.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="col-md-6 col-xl-4">
+                <div class="about-lifecycle-step h-100 p-3 rounded border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary rounded-circle px-2 py-1">2</span>
+                    <strong class="text-dark small">Atomic Outbox Insertion</strong>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    DakGhar validates inputs, inserts into the SQLite <code>messages</code> table as <code>pending</code>, and returns <code>201 Created</code> in &lt;10ms.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="col-md-6 col-xl-4">
+                <div class="about-lifecycle-step h-100 p-3 rounded border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary rounded-circle px-2 py-1">3</span>
+                    <strong class="text-dark small">Worker Claiming (Tick)</strong>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    Background worker runs every 1s, selects due pending messages (transactional first), and atomically claims them by transitioning status to <code>sending</code>.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Step 4 -->
+              <div class="col-md-6 col-xl-4">
+                <div class="about-lifecycle-step h-100 p-3 rounded border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary rounded-circle px-2 py-1">4</span>
+                    <strong class="text-dark small">Provider Selection</strong>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    <code>choose_provider()</code> selects the highest-priority healthy provider, avoiding the provider that failed this message on its last attempt.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Step 5 -->
+              <div class="col-md-6 col-xl-4">
+                <div class="about-lifecycle-step h-100 p-3 rounded border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary rounded-circle px-2 py-1">5</span>
+                    <strong class="text-dark small">Mock Send &amp; Attempt Log</strong>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    The chosen provider attempts delivery. The result, timestamp, and any error message are recorded into the append-only <code>attempts</code> audit log.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Step 6 -->
+              <div class="col-md-6 col-xl-4">
+                <div class="about-lifecycle-step h-100 p-3 rounded border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary rounded-circle px-2 py-1">6</span>
+                    <strong class="text-dark small">Final Resolution</strong>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    If delivered (<code>ok</code>), status moves to <code>sent</code> and enters the <strong>Fake Inbox</strong>. If transient error, retried with exponential backoff.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Message Status Machine -->
+      <section id="statuses" class="mb-5">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-diagram-3 text-primary fs-5"></i>
+            <h5 class="mb-0 fw-bold">3. Message Status Machine</h5>
+          </div>
+          <div class="card-body p-4">
+            <p class="text-secondary small mb-4">
+              Every message in DakGhar is always in exactly one of four statuses. The status machine guarantees predictable, audited transitions:
+            </p>
+
+            <div class="row g-3 mb-4">
+              <!-- Pending -->
+              <div class="col-sm-6 col-xl-3">
+                <div class="p-3 rounded border border-warning-subtle bg-warning-subtle h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge badge-status badge-pending">
+                      <i class="bi bi-hourglass-split"></i> pending
+                    </span>
+                    <i class="bi bi-clock text-warning fs-4"></i>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    Saved in the SQLite outbox awaiting background worker pickup, or waiting out an exponential retry backoff window.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Sending -->
+              <div class="col-sm-6 col-xl-3">
+                <div class="p-3 rounded border border-info-subtle bg-info-subtle h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge badge-status badge-sending">
+                      <i class="bi bi-arrow-repeat"></i> sending
+                    </span>
+                    <i class="bi bi-cpu text-info fs-4"></i>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    Claimed by a worker thread for an active delivery attempt. Protected with a conditional lock so no duplicate attempts occur.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Sent -->
+              <div class="col-sm-6 col-xl-3">
+                <div class="p-3 rounded border border-success-subtle bg-success-subtle h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge badge-status badge-sent">
+                      <i class="bi bi-check2-circle"></i> sent
+                    </span>
+                    <i class="bi bi-check2-all text-success fs-4"></i>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    Successfully delivered by a provider and written to the Fake Inbox. This is a terminal state.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Failed -->
+              <div class="col-sm-6 col-xl-3">
+                <div class="p-3 rounded border border-danger-subtle bg-danger-subtle h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge badge-status badge-failed">
+                      <i class="bi bi-exclamation-octagon"></i> failed
+                    </span>
+                    <i class="bi bi-x-circle text-danger fs-4"></i>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    Permanent rejection (bounced address) or temporary errors that exhausted all 4 retry attempts. Contains detailed <code>last_error</code>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Transition Table -->
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered align-middle mb-0 small">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col" style="width: 25%;">Transition</th>
+                    <th scope="col" style="width: 35%;">Trigger &amp; Condition</th>
+                    <th scope="col">Resulting Behavior</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>pending</code> &rarr; <code>sending</code></td>
+                    <td>Worker tick runs; <code>next_attempt_at &le; now</code></td>
+                    <td>Message claimed with <code>UPDATE ... WHERE status='pending'</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>sending</code> &rarr; <code>sent</code></td>
+                    <td>Provider returns <code>ok</code> (success)</td>
+                    <td>Delivered copy inserted into <code>inbox</code> table; status finalized.</td>
+                  </tr>
+                  <tr>
+                    <td><code>sending</code> &rarr; <code>pending</code></td>
+                    <td>Transient failure (attempt &lt; 4) OR all providers cooling down</td>
+                    <td>Scheduled for retry with exponential backoff: <code>now + 2^attempts</code> seconds.</td>
+                  </tr>
+                  <tr>
+                    <td><code>sending</code> &rarr; <code>failed</code></td>
+                    <td>Permanent failure (bounce) OR 4 attempts exhausted</td>
+                    <td>Immediately failed (no retry for bounce); or recorded as <code>gave up after 4 attempts</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>sending</code> &rarr; <code>pending</code> (Crash Recovery)</td>
+                    <td>Application or worker restarts</td>
+                    <td>Any message left in <code>sending</code> state is reset to <code>pending</code> so it is never lost.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Retries & Exponential Backoff -->
+      <section id="retries" class="mb-5">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-clock-history text-primary fs-5"></i>
+            <h5 class="mb-0 fw-bold">4. Retries &amp; Exponential Backoff</h5>
+          </div>
+          <div class="card-body p-4">
+            <div class="row g-4">
+              <div class="col-lg-6">
+                <h6 class="fw-bold text-dark mb-2">Temporary vs. Permanent Failures</h6>
+                <div class="mb-3 p-3 rounded bg-light border">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-danger">Permanent Error</span>
+                    <strong class="small text-dark">Address Bounces</strong>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    Recipients ending in <code>@bounce.example</code> or phone numbers starting with <code>+91900000</code> simulate nonexistent mailboxes or numbers. They fail <strong>immediately on attempt 1</strong> with reason <code>bounced: recipient does not exist</code>. They are <em>never</em> retried.
+                  </p>
+                </div>
+
+                <div class="p-3 rounded bg-light border">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-warning text-dark">Temporary Error</span>
+                    <strong class="small text-dark">Network Timeouts &amp; Outages</strong>
+                  </div>
+                  <p class="small text-muted mb-0">
+                    A simulated provider outage (<code>503 provider unavailable</code>) or a simulated network timeout is temporary. The service pauses and retries using exponential backoff up to <strong>4 attempts</strong> maximum.
+                  </p>
+                </div>
+              </div>
+
+              <div class="col-lg-6">
+                <h6 class="fw-bold text-dark mb-2">The Exponential Backoff Schedule</h6>
+                <p class="text-secondary small mb-3">
+                  Backoff delays grow exponentially according to the formula: <code>next_attempt_at = now + 2^attempts</code> seconds.
+                </p>
+
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered align-middle mb-0 small">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Attempt #</th>
+                        <th>Formula</th>
+                        <th>Wait Delay</th>
+                        <th>Action if Failed</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="font-monospace fw-bold">Attempt 1</td>
+                        <td><code>2^1</code></td>
+                        <td><strong>2 seconds</strong></td>
+                        <td>Scheduled for Attempt 2</td>
+                      </tr>
+                      <tr>
+                        <td class="font-monospace fw-bold">Attempt 2</td>
+                        <td><code>2^2</code></td>
+                        <td><strong>4 seconds</strong></td>
+                        <td>Scheduled for Attempt 3</td>
+                      </tr>
+                      <tr>
+                        <td class="font-monospace fw-bold">Attempt 3</td>
+                        <td><code>2^3</code></td>
+                        <td><strong>8 seconds</strong></td>
+                        <td>Scheduled for Attempt 4</td>
+                      </tr>
+                      <tr class="table-danger">
+                        <td class="font-monospace fw-bold">Attempt 4</td>
+                        <td><code>MAX_ATTEMPTS</code></td>
+                        <td><strong>0s (Gave up)</strong></td>
+                        <td>Marked <code>failed</code>: gave up after 4 attempts</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Provider Failover & Circuit Breaker -->
+      <section id="failover" class="mb-5">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-hdd-network-fill text-primary fs-5"></i>
+            <h5 class="mb-0 fw-bold">5. Provider Failover &amp; Circuit Breaker</h5>
+          </div>
+          <div class="card-body p-4">
+            <p class="text-secondary small mb-4">
+              To prevent hammering broken third-party services and avoid delaying customer messages, DakGhar implements a <strong>circuit breaker</strong> and <strong>automated provider failover</strong>:
+            </p>
+
+            <div class="row g-4">
+              <!-- Circuit Breaker Rules -->
+              <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-light">
+                  <h6 class="fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-shield-shaded text-primary"></i> Circuit Breaker Mechanics
+                  </h6>
+                  <ul class="small text-secondary mb-0 ps-3 d-flex flex-column gap-2">
+                    <li>
+                      <strong>Failure Threshold (<code>OPEN_AFTER = 2</code>):</strong> If any provider experiences 2 transient failures in a row, its circuit breaker trips (opens).
+                    </li>
+                    <li>
+                      <strong>Cooldown Duration (<code>COOLDOWN_S = 30s</code>):</strong> When the circuit opens, the provider is quarantined for 30 seconds (<code>open_until = now + 30</code>).
+                    </li>
+                    <li>
+                      <strong>Recovery Probing:</strong> After 30 seconds have elapsed, the provider is tried again. If the probe succeeds, <code>consecutive_failures</code> resets to 0. If it fails, the circuit re-opens for another 30s immediately.
+                    </li>
+                    <li>
+                      <strong>Reset on Success:</strong> Any successful delivery (or legitimate bounce) immediately resets that provider's failure counter to 0.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Provider Choice Logic -->
+              <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-light">
+                  <h6 class="fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-shuffle text-primary"></i> Provider Choice &amp; Failover Rules
+                  </h6>
+                  <ul class="small text-secondary mb-0 ps-3 d-flex flex-column gap-2">
+                    <li>
+                      <strong>Primary vs. Backup:</strong> Priority 1 providers (<code>mailfast</code>, <code>smsly</code>) are preferred when healthy. Priority 2 providers (<code>postbird</code>, <code>textgo</code>) act as hot standbys.
+                    </li>
+                    <li>
+                      <strong>Avoid Last Failure:</strong> When choosing a provider for a retried message, <code>choose_provider()</code> skips the provider that failed this message on its previous try if another healthy provider is available.
+                    </li>
+                    <li>
+                      <strong>All Providers Cooling Down:</strong> If both providers for a channel are in cooldown, the message is not failed! It remains <code>pending</code> with <code>next_attempt_at = min(open_until)</code>, consuming zero retry attempts while waiting for a provider to wake up.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Provider Choice Decision Table -->
+            <div class="mt-4">
+              <h6 class="fw-bold text-dark small mb-2">Provider Choice Decision Table (Email Channel Example):</h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0 small">
+                  <thead class="table-light">
+                    <tr>
+                      <th><code>mailfast</code> (Primary)</th>
+                      <th><code>postbird</code> (Backup)</th>
+                      <th>Avoid Provider</th>
+                      <th>Chosen Provider</th>
+                      <th>Explanation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="badge bg-success">Healthy</span></td>
+                      <td><span class="badge bg-success">Healthy</span></td>
+                      <td>None</td>
+                      <td><code>mailfast</code></td>
+                      <td>Both healthy, selects lower priority number (primary).</td>
+                    </tr>
+                    <tr>
+                      <td><span class="badge bg-success">Healthy</span></td>
+                      <td><span class="badge bg-success">Healthy</span></td>
+                      <td><code>mailfast</code></td>
+                      <td><code>postbird</code></td>
+                      <td>Skips <code>mailfast</code> because it just failed this message; falls over to backup.</td>
+                    </tr>
+                    <tr>
+                      <td><span class="badge bg-danger">Cooling down</span></td>
+                      <td><span class="badge bg-success">Healthy</span></td>
+                      <td>None</td>
+                      <td><code>postbird</code></td>
+                      <td>Primary is in 30s cooldown; automatically routes to backup.</td>
+                    </tr>
+                    <tr>
+                      <td><span class="badge bg-danger">Cooling down</span></td>
+                      <td><span class="badge bg-danger">Cooling down</span></td>
+                      <td>Any</td>
+                      <td><em>None (Wait)</em></td>
+                      <td>Both in cooldown; message waits until earliest cooldown expires without wasting attempts.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Crash Recovery & At-Least-Once Delivery -->
+      <section id="recovery" class="mb-5">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check text-primary fs-5"></i>
+            <h5 class="mb-0 fw-bold">6. Crash Recovery &amp; At-Least-Once Delivery</h5>
+          </div>
+          <div class="card-body p-4">
+            <div class="row g-4 align-items-center">
+              <div class="col-lg-7">
+                <h6 class="fw-bold text-dark mb-2">Surviving Server &amp; Worker Crashes</h6>
+                <p class="text-secondary small mb-3">
+                  What happens if the power is cut or the server crashes while messages are in-flight? Because DakGhar uses SQLite with immediate ACID transactions, messages are never lost in RAM:
+                </p>
+                <div class="p-3 bg-light rounded border mb-3">
+                  <code class="d-block small mb-2 text-dark font-monospace">
+                    UPDATE messages SET status = 'pending', next_attempt_at = now<br>
+                    WHERE status = 'sending'
+                  </code>
+                  <p class="small text-muted mb-0">
+                    Whenever the DakGhar server restarts, the worker's <code>recover()</code> routine immediately resets any message stuck in the <code>sending</code> state back to <code>pending</code>. Processing resumes seamlessly within one second.
+                  </p>
+                </div>
+
+                <h6 class="fw-bold text-dark mb-2">Idempotency via Unique Constraints</h6>
+                <p class="text-secondary small mb-0">
+                  The SQLite inbox table enforces <code>UNIQUE(provider, message_id)</code>. If a crash occurred after the mock provider recorded delivery but before the message status was committed, the worker re-attempts delivery on reboot. The database's unique constraint prevents duplicate inbox records for the same provider and message. This supports safe retries after recovery, but does not guarantee that every message will ultimately be delivered.
+                </p>
+              </div>
+
+              <div class="col-lg-5">
+                <div class="card bg-light border p-3">
+                  <h6 class="fw-bold small text-dark mb-2"><i class="bi bi-database me-1 text-primary"></i> SQLite Storage Architecture</h6>
+                  <ul class="list-unstyled small text-muted mb-0 d-flex flex-column gap-2">
+                    <li><i class="bi bi-table me-2 text-primary"></i><strong>messages</strong>: Primary outbox queue; tracks channel, recipient, body, status, attempts, backoff.</li>
+                    <li><i class="bi bi-table me-2 text-primary"></i><strong>attempts</strong>: Immutable audit trail; one row per try recording timestamp, provider, result, error.</li>
+                    <li><i class="bi bi-table me-2 text-primary"></i><strong>providers</strong>: Seeded provider configuration, failure rates, and circuit breaker state.</li>
+                    <li><i class="bi bi-table me-2 text-primary"></i><strong>inbox</strong>: Fake delivered mailbox viewable on Screen 5.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. Hand-Checked Worked Examples (from PRD Section 15) -->
+      <section id="examples" class="mb-5">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-journal-text text-primary fs-5"></i>
+            <h5 class="mb-0 fw-bold">7. Worked Examples (PRD Section 15 Scenarios)</h5>
+          </div>
+          <div class="card-body p-4">
+            <p class="text-secondary small mb-4">
+              These reference scenarios from Section 15 of the PRD walk through exact real-world failure handling, verified by automated unit tests:
+            </p>
+
+            <!-- Example A -->
+            <div class="mb-5">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-primary">Scenario A</span>
+                <h6 class="fw-bold text-dark mb-0">Primary Email Outage &amp; Automatic Failover</h6>
+              </div>
+              <p class="text-secondary small mb-3">
+                <code>mailfast</code> is experiencing an outage from $t = 10\text{s}$ to $t = 50\text{s}$. Five emails arrive. Watch how DakGhar protects deliveries:
+              </p>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0 small">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width: 50px;">Time</th>
+                      <th style="width: 130px;">Message</th>
+                      <th style="width: 60px;">Try #</th>
+                      <th style="width: 180px;">Provider &amp; Reason</th>
+                      <th style="width: 90px;">Result</th>
+                      <th>System State &amp; What Happens Next</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="font-monospace fw-bold">10s</td>
+                      <td>Msg 1 (Ritu, transactional)</td>
+                      <td>1</td>
+                      <td><code>mailfast</code> (primary)</td>
+                      <td><span class="badge bg-warning text-dark">503</span></td>
+                      <td><code>mailfast</code> failures = 1. Msg 1 backoff $2^1=2\text{s} \rightarrow$ next at 12s, avoids <code>mailfast</code>.</td>
+                    </tr>
+                    <tr>
+                      <td class="font-monospace fw-bold">10s</td>
+                      <td>Msg 2 (Kabir, transactional)</td>
+                      <td>1</td>
+                      <td><code>mailfast</code> (primary)</td>
+                      <td><span class="badge bg-warning text-dark">503</span></td>
+                      <td><code>mailfast</code> failures = 2 $\ge$ 2. <strong>Circuit opens for 30s (until 40s)</strong>. Msg 2 next at 12s.</td>
+                    </tr>
+                    <tr class="table-success">
+                      <td class="font-monospace fw-bold">11s</td>
+                      <td>Msg 3 (Neha, marketing)</td>
+                      <td>1</td>
+                      <td><code>postbird</code> (backup)</td>
+                      <td><span class="badge bg-success">sent</span></td>
+                      <td><code>mailfast</code> is cooling down; traffic immediately shifts to healthy backup <code>postbird</code>. Sent!</td>
+                    </tr>
+                    <tr class="table-success">
+                      <td class="font-monospace fw-bold">12s</td>
+                      <td>Msg 1 (Ritu)</td>
+                      <td>2</td>
+                      <td><code>postbird</code> (backup)</td>
+                      <td><span class="badge bg-success">sent</span></td>
+                      <td>Msg 1 retried on backup provider. Sent in 2 attempts!</td>
+                    </tr>
+                    <tr class="table-success">
+                      <td class="font-monospace fw-bold">12s</td>
+                      <td>Msg 2 (Kabir)</td>
+                      <td>2</td>
+                      <td><code>postbird</code> (backup)</td>
+                      <td><span class="badge bg-success">sent</span></td>
+                      <td>Msg 2 retried on backup provider. Sent in 2 attempts!</td>
+                    </tr>
+                    <tr class="table-danger">
+                      <td class="font-monospace fw-bold">12s</td>
+                      <td>Msg 4 (Asha, bounce)</td>
+                      <td>1</td>
+                      <td><code>postbird</code> (backup)</td>
+                      <td><span class="badge bg-danger">bounced</span></td>
+                      <td>Simulated bounce address; fails permanently at once. Does not penalize <code>postbird</code>.</td>
+                    </tr>
+                    <tr>
+                      <td class="font-monospace fw-bold">40s</td>
+                      <td>Msg 5 (Jay, transactional)</td>
+                      <td>1</td>
+                      <td><code>mailfast</code> (probe)</td>
+                      <td><span class="badge bg-warning text-dark">503</span></td>
+                      <td>Cooldown ended ($40\text{s} \le 40\text{s}$). Test probe fails $\rightarrow$ circuit re-opens until 70s. Msg 5 next at 42s.</td>
+                    </tr>
+                    <tr class="table-success">
+                      <td class="font-monospace fw-bold">42s</td>
+                      <td>Msg 5 (Jay)</td>
+                      <td>2</td>
+                      <td><code>postbird</code> (backup)</td>
+                      <td><span class="badge bg-success">sent</span></td>
+                      <td>Msg 5 avoids <code>mailfast</code> and sends via backup <code>postbird</code>!</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Example B -->
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-purple text-white" style="background-color: #7e22ce;">Scenario B</span>
+                <h6 class="fw-bold text-dark mb-0">Both SMS Providers Down: Exponential Backoff &amp; Max Attempts</h6>
+              </div>
+              <p class="text-secondary small mb-3">
+                One OTP SMS enqueued at $t = 0\text{s}$ while both <code>smsly</code> and <code>textgo</code> are down. The message alternates between providers with exponential backoff until 4 attempts are exhausted:
+              </p>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0 small">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width: 50px;">Time</th>
+                      <th style="width: 60px;">Try #</th>
+                      <th style="width: 180px;">Provider &amp; Reason</th>
+                      <th style="width: 90px;">Result</th>
+                      <th>Backoff Calculation &amp; Next Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="font-monospace fw-bold">0s</td>
+                      <td>1</td>
+                      <td><code>smsly</code> (primary first)</td>
+                      <td><span class="badge bg-warning text-dark">503</span></td>
+                      <td><code>smsly</code> failures = 1. Backoff: $2^1=2\text{s} \rightarrow$ scheduled for $t = 2\text{s}$. Avoids <code>smsly</code>.</td>
+                    </tr>
+                    <tr>
+                      <td class="font-monospace fw-bold">2s</td>
+                      <td>2</td>
+                      <td><code>textgo</code> (avoids smsly)</td>
+                      <td><span class="badge bg-warning text-dark">503</span></td>
+                      <td><code>textgo</code> failures = 1. Backoff: $2^2=4\text{s} \rightarrow$ scheduled for $2 + 4 = 6\text{s}$. Avoids <code>textgo</code>.</td>
+                    </tr>
+                    <tr>
+                      <td class="font-monospace fw-bold">6s</td>
+                      <td>3</td>
+                      <td><code>smsly</code> (avoids textgo)</td>
+                      <td><span class="badge bg-warning text-dark">503</span></td>
+                      <td><code>smsly</code> failures = 2 $\rightarrow$ circuit opens until 36s. Backoff: $2^3=8\text{s} \rightarrow$ scheduled for $6 + 8 = 14\text{s}$.</td>
+                    </tr>
+                    <tr class="table-danger">
+                      <td class="font-monospace fw-bold">14s</td>
+                      <td>4</td>
+                      <td><code>textgo</code> (only healthy)</td>
+                      <td><span class="badge bg-danger">failed</span></td>
+                      <td><code>textgo</code> failures = 2 $\rightarrow$ circuit opens until 44s. <strong>Attempts reached 4 (MAX_ATTEMPTS)</strong>. Status finalized as <code>failed</code>: <em>"gave up after 4 attempts: 503 provider unavailable"</em>.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. Glossary -->
+      <section id="glossary" class="mb-5">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white py-3 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-book-half text-primary fs-5"></i>
+            <h5 class="mb-0 fw-bold">8. Key Concepts &amp; Glossary</h5>
+          </div>
+          <div class="card-body p-4">
+            <div class="row g-3">
+              <!-- API -->
+              <div class="col-md-6 col-xl-4">
+                <div class="p-3 rounded border h-100 bg-white">
+                  <div class="fw-bold text-dark small mb-1"><i class="bi bi-code-slash text-primary me-1"></i> API (REST)</div>
+                  <p class="small text-muted mb-0">
+                    The interface that allows client applications to enqueue messages and query statuses over HTTP using JSON data.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Outbox Pattern -->
+              <div class="col-md-6 col-xl-4">
+                <div class="p-3 rounded border h-100 bg-white">
+                  <div class="fw-bold text-dark small mb-1"><i class="bi bi-inbox-fill text-primary me-1"></i> Transactional Outbox</div>
+                  <p class="small text-muted mb-0">
+                    A distributed systems design pattern where outbound requests are saved into a database table first before being sent asynchronously.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Background Worker -->
+              <div class="col-md-6 col-xl-4">
+                <div class="p-3 rounded border h-100 bg-white">
+                  <div class="fw-bold text-dark small mb-1"><i class="bi bi-cpu-fill text-primary me-1"></i> Background Worker</div>
+                  <p class="small text-muted mb-0">
+                    An independent daemon thread executing a loop every second (<code>tick()</code>) to query, claim, and send due pending notifications.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Mock Provider -->
+              <div class="col-md-6 col-xl-4">
+                <div class="p-3 rounded border h-100 bg-white">
+                  <div class="fw-bold text-dark small mb-1"><i class="bi bi-hdd-network text-primary me-1"></i> Mock Provider</div>
+                  <p class="small text-muted mb-0">
+                    A simulated third-party gateway (like simulated Twilio or SendGrid) that prints delivery output and writes to the simulated Fake Inbox.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Exponential Backoff -->
+              <div class="col-md-6 col-xl-4">
+                <div class="p-3 rounded border h-100 bg-white">
+                  <div class="fw-bold text-dark small mb-1"><i class="bi bi-graph-up-arrow text-primary me-1"></i> Exponential Backoff</div>
+                  <p class="small text-muted mb-0">
+                    A retry algorithm that exponentially increases wait times ($2\text{s}, 4\text{s}, 8\text{s}$) between failed attempts to prevent overloading failing services.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Circuit Breaker -->
+              <div class="col-md-6 col-xl-4">
+                <div class="p-3 rounded border h-100 bg-white">
+                  <div class="fw-bold text-dark small mb-1"><i class="bi bi-shield-x text-primary me-1"></i> Circuit Breaker</div>
+                  <p class="small text-muted mb-0">
+                    A design pattern that temporarily disables routing to an external provider after 2 consecutive failures, protecting the system for a 30-second cooldown.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Provider Failover -->
+              <div class="col-md-6 col-xl-4">
+                <div class="p-3 rounded border h-100 bg-white">
+                  <div class="fw-bold text-dark small mb-1"><i class="bi bi-arrow-left-right text-primary me-1"></i> Provider Failover</div>
+                  <p class="small text-muted mb-0">
+                    Automatically redirecting notifications to an alternate provider (e.g., from <code>mailfast</code> to <code>postbird</code>) when the primary fails.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Idempotency -->
+              <div class="col-md-6 col-xl-4">
+                <div class="p-3 rounded border h-100 bg-white">
+                  <div class="fw-bold text-dark small mb-1"><i class="bi bi-fingerprint text-primary me-1"></i> Idempotency</div>
+                  <p class="small text-muted mb-0">
+                    The property that executing the same operation multiple times produces the exact same outcome without causing duplicate deliveries.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Crash Recovery -->
+              <div class="col-md-6 col-xl-4">
+                <div class="p-3 rounded border h-100 bg-white">
+                  <div class="fw-bold text-dark small mb-1"><i class="bi bi-arrow-clockwise text-primary me-1"></i> Crash Recovery</div>
+                  <p class="small text-muted mb-0">
+                    The mechanism that automatically resets in-flight messages (<code>sending</code> &rarr; <code>pending</code>) on startup, achieving at-least-once delivery.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Interactive Call to Action / Explore Live Screens -->
+      <div class="card bg-primary-subtle border border-primary-subtle p-4 mb-4 text-center">
+        <h5 class="fw-bold text-primary mb-2">Ready to test DakGhar in action?</h5>
+        <p class="text-secondary small mb-3">
+          Explore the interactive dashboards to send messages, watch queue processing, trigger simulated outages, and verify delivered mailboxes.
+        </p>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+          <a href="send.html" class="btn btn-sm btn-primary">
+            <i class="bi bi-send-fill me-1"></i>Screen 1: Send Message
+          </a>
+          <a href="outbox.html" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-inbox-fill me-1"></i>Screen 2: Outbox Dashboard
+          </a>
+          <a href="providers.html" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-hdd-network-fill me-1"></i>Screen 4: Providers &amp; Worker
+          </a>
+          <a href="inbox.html" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-check2-all me-1"></i>Screen 5: Fake Inbox
+          </a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Settings Modal for API Key -->
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settingsModalLabel"><i class="bi bi-key-fill text-primary me-2"></i>API Key Settings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">
+            DakGhar enforces permissions using two separate secret keys sent in request headers. Keys are stored only in <code>sessionStorage</code> for this browser session and sent to the DakGhar API in request headers (<code>X-Api-Key</code> or <code>X-Admin-Key</code>). They are cleared when the browser tab closes.
+          </p>
+
+          <!-- Sender Key Input -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="settingsSenderKeyInput" class="form-label mb-0">Sender Key (X-Api-Key)</label>
+              <span id="settingsSenderBadge" class="badge bg-secondary">No Sender Key</span>
+            </div>
+            <input type="password" class="form-control font-monospace form-control-sm" id="settingsSenderKeyInput" placeholder="Paste your Sender Key here">
+            <div class="form-text small">
+              Used for enqueuing messages and viewing the outbox and inbox. Sent exclusively via the <code>X-Api-Key</code> header.
+            </div>
+          </div>
+
+          <!-- Admin Key Input -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="settingsAdminKeyInput" class="form-label mb-0">Admin Key (X-Admin-Key)</label>
+              <span id="settingsAdminBadge" class="badge bg-secondary">No Admin Key</span>
+            </div>
+            <input type="password" class="form-control font-monospace form-control-sm" id="settingsAdminKeyInput" placeholder="Paste your Admin Key here">
+            <div class="form-text small">
+              Used for worker pause/resume, single tick, provider outage switches, and database reset. Sent exclusively via the <code>X-Admin-Key</code> header.
+            </div>
+          </div>
+
+          <div class="pt-2 border-top d-flex justify-content-between">
+            <button type="button" class="btn btn-sm btn-outline-danger" id="settingsClearKeysBtn">Clear Keys from Session</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="settingsClearPrefsBtn">Clear Display Preferences</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="settingsSaveBtn">Save Keys</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5.3 JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Shared API Client (powers navbar worker status pulse & settings modal) -->
+  <script src="js/api.js"></script>
+</body>
+</html>
