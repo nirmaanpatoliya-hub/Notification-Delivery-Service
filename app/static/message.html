@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message Detail · DakGhar</title>
+
+  <!-- Bootstrap 5.3 CSS & Bootstrap Icons CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Custom Stylesheet (shared with Screens 1 & 2) -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Mobile Top Header (Visible on screens < 992px) -->
+  <header class="mobile-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-mailbox2 text-primary fs-4"></i>
+      <span class="fw-bold">DakGhar</span>
+    </div>
+    <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-label="Toggle navigation">
+      <i class="bi bi-list fs-5"></i>
+    </button>
+  </header>
+
+  <div class="app-layout">
+
+    <!-- Dark Navy Sidebar (Desktop) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <a href="outbox.html" class="sidebar-brand">
+          <i class="bi bi-mailbox2 text-primary fs-3"></i>
+          <div>
+            DakGhar
+            <span class="brand-sub">Notification Outbox</span>
+          </div>
+        </a>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li class="nav-item">
+          <a href="send.html" class="nav-link">
+            <i class="bi bi-send-fill"></i>
+            <span>Send Message</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <!-- Outbox is highlighted as the parent screen -->
+          <a href="outbox.html" class="nav-link active">
+            <i class="bi bi-inbox-fill"></i>
+            <span>Outbox</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="providers.html" class="nav-link">
+            <i class="bi bi-hdd-network-fill"></i>
+            <span>Providers &amp; Worker</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="inbox.html" class="nav-link">
+            <i class="bi bi-check2-all"></i>
+            <span>Fake Inbox</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="about.html" class="nav-link">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>How It Works</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="worker-status-box">
+          <span><span class="worker-pulse running"></span><span class="worker-status-text">Worker Status</span></span>
+          <a href="providers.html" class="text-white text-decoration-none small" title="View Worker"><i class="bi bi-gear"></i></a>
+        </div>
+        <button class="btn btn-sm btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#settingsModal">
+          <i class="bi bi-key-fill"></i>
+          <span>API Key Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Offcanvas Sidebar -->
+    <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileSidebar">
+      <div class="offcanvas-header border-bottom border-secondary">
+        <h5 class="offcanvas-title d-flex align-items-center gap-2">
+          <i class="bi bi-mailbox2 text-primary"></i> DakGhar
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column p-0">
+        <ul class="sidebar-nav flex-grow-1">
+          <li class="nav-item"><a href="send.html" class="nav-link"><i class="bi bi-send-fill"></i> Send Message</a></li>
+          <li class="nav-item"><a href="outbox.html" class="nav-link active"><i class="bi bi-inbox-fill"></i> Outbox</a></li>
+          <li class="nav-item"><a href="providers.html" class="nav-link"><i class="bi bi-hdd-network-fill"></i> Providers &amp; Worker</a></li>
+          <li class="nav-item"><a href="inbox.html" class="nav-link"><i class="bi bi-check2-all"></i> Fake Inbox</a></li>
+          <li class="nav-item"><a href="about.html" class="nav-link"><i class="bi bi-info-circle-fill"></i> How It Works</a></li>
+        </ul>
+        <div class="p-3 border-top border-secondary">
+          <button class="btn btn-sm btn-outline-light w-100" data-bs-toggle="modal" data-bs-target="#settingsModal">
+            <i class="bi bi-key-fill"></i> API Key Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="app-main">
+
+      <!-- Page Header: Back button + title -->
+      <div class="page-header d-flex flex-wrap align-items-center gap-3 mb-4">
+        <a href="outbox.html" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" id="backBtn">
+          <i class="bi bi-arrow-left"></i>
+          <span>Back to Outbox</span>
+        </a>
+        <div>
+          <h1 class="page-title mb-0" id="pageTitle">Message Detail</h1>
+          <p class="page-subtitle mb-0" id="pageSubtitle">Loading message information…</p>
+        </div>
+      </div>
+
+      <!-- Loading Spinner (shown while fetching) -->
+      <div id="loadingState" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading…</span>
+        </div>
+        <p class="text-muted mt-3 mb-0">Fetching message details…</p>
+      </div>
+
+      <!-- Error State (shown on 404 / auth failure / network error) -->
+      <div id="errorState" class="d-none">
+        <div class="card">
+          <div class="card-body text-center py-5">
+            <i class="bi bi-exclamation-circle-fill text-danger fs-1 mb-3 d-block"></i>
+            <h5 id="errorTitle" class="mb-2">Error</h5>
+            <p id="errorMessage" class="text-muted mb-4"></p>
+            <a href="outbox.html" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left me-1"></i>Return to Outbox
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main detail content (hidden until data loads) -->
+      <div id="detailContent" class="d-none">
+
+        <!-- ── Row 1: Message Overview Card ── -->
+        <div class="card">
+          <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span class="d-flex align-items-center gap-2">
+              <i class="bi bi-envelope-open-fill text-primary"></i>
+              <span>Message Overview</span>
+              <span class="text-muted fw-normal font-monospace small" id="msgIdBadge"></span>
+            </span>
+            <!-- Current delivery status badge -->
+            <span id="statusBadgeContainer"></span>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+
+              <!-- Left column: core fields -->
+              <div class="col-md-8">
+
+                <!-- Recipient (full, unmasked — PRD requirement for detail view) -->
+                <div class="detail-field mb-3">
+                  <div class="detail-label" id="recipientLabel">Recipient</div>
+                  <div class="detail-value font-monospace text-break" id="msgRecipient">—</div>
+                </div>
+
+                <!-- Subject (email only) -->
+                <div class="detail-field mb-3" id="subjectRow">
+                  <div class="detail-label">Subject</div>
+                  <div class="detail-value" id="msgSubject">—</div>
+                </div>
+
+                <!-- Message Body -->
+                <div class="detail-field">
+                  <div class="detail-label">Message Body</div>
+                  <div class="detail-value msg-body-text" id="msgBody">—</div>
+                </div>
+              </div>
+
+              <!-- Right column: metadata -->
+              <div class="col-md-4">
+                <div class="detail-meta-block">
+
+                  <div class="detail-meta-row">
+                    <span class="detail-label">Channel</span>
+                    <span id="msgChannel">—</span>
+                  </div>
+
+                  <div class="detail-meta-row">
+                    <span class="detail-label">Category</span>
+                    <span id="msgCategory">—</span>
+                  </div>
+
+                  <div class="detail-meta-row">
+                    <span class="detail-label">Created</span>
+                    <span id="msgCreatedAt" title="">—</span>
+                  </div>
+
+                  <div class="detail-meta-row">
+                    <span class="detail-label">Sent At</span>
+                    <span id="msgSentAt">—</span>
+                  </div>
+
+                  <div class="detail-meta-row">
+                    <span class="detail-label">Attempts</span>
+                    <span id="msgAttempts">—</span>
+                  </div>
+
+                  <div class="detail-meta-row" id="providerRow">
+                    <span class="detail-label">Last Provider</span>
+                    <span id="msgProvider">—</span>
+                  </div>
+
+                  <div class="detail-meta-row" id="lastErrorRow">
+                    <span class="detail-label">Last Error</span>
+                    <span class="text-danger small text-break" id="msgLastError">—</span>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Row 2: Delivery Attempt Timeline Card ── -->
+        <div class="card">
+          <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-clock-history text-primary"></i>
+            <span>Delivery Attempt Timeline</span>
+            <span class="badge bg-secondary ms-1 fw-normal" id="attemptCountBadge">0</span>
+          </div>
+          <div class="card-body p-0">
+
+            <!-- Empty state: message has no attempts yet -->
+            <div id="noAttemptsState" class="text-center py-5 d-none">
+              <i class="bi bi-hourglass-split text-muted fs-1 mb-3 d-block"></i>
+              <p class="text-muted mb-0">No delivery attempts yet. The worker will pick this up shortly.</p>
+            </div>
+
+            <!-- Attempts timeline list -->
+            <ol class="attempt-timeline" id="attemptTimeline">
+              <!-- Dynamically populated by message.js -->
+            </ol>
+
+          </div>
+        </div>
+
+      </div>
+      <!-- end #detailContent -->
+
+    </main>
+  </div>
+
+  <!-- Settings Modal (identical to outbox.html) -->
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settingsModalLabel"><i class="bi bi-key-fill text-primary me-2"></i>API Key Settings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">
+            DakGhar enforces permissions using two separate secret keys sent in request headers. Keys are stored only in <code>sessionStorage</code> for this browser session and sent to the DakGhar API in request headers (<code>X-Api-Key</code> or <code>X-Admin-Key</code>). They are cleared when the browser tab closes.
+          </p>
+
+          <!-- Sender Key Input -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="settingsSenderKeyInput" class="form-label mb-0">Sender Key (X-Api-Key)</label>
+              <span id="settingsSenderBadge" class="badge bg-secondary">No Sender Key</span>
+            </div>
+            <input type="password" class="form-control font-monospace form-control-sm" id="settingsSenderKeyInput" placeholder="Paste your Sender Key here">
+            <div class="form-text small">
+              Used for enqueuing messages and viewing the outbox. Sent exclusively via the <code>X-Api-Key</code> header.
+            </div>
+          </div>
+
+          <!-- Admin Key Input -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label for="settingsAdminKeyInput" class="form-label mb-0">Admin Key (X-Admin-Key)</label>
+              <span id="settingsAdminBadge" class="badge bg-secondary">No Admin Key</span>
+            </div>
+            <input type="password" class="form-control font-monospace form-control-sm" id="settingsAdminKeyInput" placeholder="Paste your Admin Key here">
+            <div class="form-text small">
+              Used for worker pause/resume, single tick, provider outage switches, and database reset. Sent exclusively via the <code>X-Admin-Key</code> header.
+            </div>
+          </div>
+
+          <div class="pt-2 border-top d-flex justify-content-between">
+            <button type="button" class="btn btn-sm btn-outline-danger" id="settingsClearKeysBtn">Clear Keys from Session</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="settingsClearPrefsBtn">Clear Display Preferences</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="settingsSaveBtn">Save Keys</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5.3 JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Shared API Client & Screen 3 Logic -->
+  <script src="js/api.js"></script>
+  <script src="js/message.js"></script>
+</body>
+</html>
